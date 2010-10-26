@@ -127,6 +127,17 @@ bool ItemUse_item_petrov_cluster_bombs(Player* pPlayer, Item* pItem, const Spell
     return false;
 }
 
+/* #################
+## CUSTOM Bankstein
+################# */
+
+bool ItemUse_item_bank_stein(Player* pPlayer, Item* pItem, const SpellCastTargets& pTargets)
+{
+    pPlayer->CastCustomSpell(pPlayer, 836, NULL, NULL, NULL, true);
+    pPlayer->GetSession()->SendShowBank(pPlayer->GetObjectGuid());
+    return true;
+}
+
 void AddSC_item_scripts()
 {
     Script* pNewScript;
@@ -149,5 +160,11 @@ void AddSC_item_scripts()
     pNewScript = new Script;
     pNewScript->Name = "item_petrov_cluster_bombs";
     pNewScript->pItemUse = &ItemUse_item_petrov_cluster_bombs;
+    pNewScript->RegisterSelf();
+
+    // CUSTOM Bank Stein
+    pNewScript = new Script;
+    pNewScript->Name = "item_bank_stein";
+    pNewScript->pItemUse = &ItemUse_item_bank_stein;
     pNewScript->RegisterSelf();
 }
