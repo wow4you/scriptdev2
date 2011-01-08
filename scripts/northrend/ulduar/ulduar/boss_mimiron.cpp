@@ -1218,9 +1218,7 @@ struct MANGOS_DLL_DECL boss_mimironAI : public ScriptedAI
         if (m_pInstance)
         {
             m_pInstance->SetData(TYPE_MIMIRON, IN_PROGRESS);
-            // activate teleporter
-            if (m_pInstance->GetData(TYPE_MIMIRON_TP) != DONE)
-                m_pInstance->SetData(TYPE_MIMIRON_TP, DONE);
+
             // start intro
             if (m_pInstance->GetData(TYPE_MIMIRON) != DONE)
                 m_pInstance->SetData(TYPE_MIMIRON_PHASE, PHASE_INTRO);
@@ -2106,7 +2104,7 @@ struct MANGOS_DLL_DECL mob_magnetic_coreAI : public ScriptedAI
 };
 
 // Red button -> used to start the hard mode
-bool GOHello_go_red_button(Player* pPlayer, GameObject* pGo)
+bool GOUse_go_red_button(Player* pPlayer, GameObject* pGo)
 {
     ScriptedInstance* m_pInstance = (ScriptedInstance*)pGo->GetInstanceData();
 
@@ -2260,6 +2258,6 @@ void AddSC_boss_mimiron()
 
     newscript = new Script;
     newscript->Name = "go_red_button";
-    newscript->pGOHello = &GOHello_go_red_button;
+    newscript->pGOUse = &GOUse_go_red_button;
     newscript->RegisterSelf();
 }

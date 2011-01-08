@@ -827,7 +827,7 @@ struct MANGOS_DLL_DECL mob_cosmic_smash_targetAI : public ScriptedAI
 };
 
 
-bool GOHello_go_celestial_acces(Player* pPlayer, GameObject* pGo)
+bool GOUse_go_celestial_acces(Player* pPlayer, GameObject* pGo)
 {
     ScriptedInstance* m_pInstance = (ScriptedInstance*)pGo->GetInstanceData();
     bool m_bIsRegularMode = pGo->GetMap()->IsRegularDifficulty();
@@ -930,6 +930,6 @@ void AddSC_boss_algalon()
 
     newscript = new Script;
     newscript->Name = "go_celestial_acces";
-    newscript->pGOHello = &GOHello_go_celestial_acces;
+    newscript->pGOUse = &GOUse_go_celestial_acces;
     newscript->RegisterSelf();
 }
