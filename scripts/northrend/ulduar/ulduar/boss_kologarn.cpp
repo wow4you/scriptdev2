@@ -187,7 +187,7 @@ struct MANGOS_DLL_DECL boss_left_armAI : public ScriptedAI
             if (Creature* pTemp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_KOLOGARN)))
                 DoScriptText(SAY_SHOCKWAVE, pTemp);
 
-            DoCast(m_creature, m_bIsRegularMode ? SPELL_SHOCKWAVE : SPELL_SHOCKWAVE_H);
+            DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_SHOCKWAVE : SPELL_SHOCKWAVE_H);
             m_uiShockwave_Timer = 17000;
         }
         else m_uiShockwave_Timer -= diff;
@@ -310,7 +310,7 @@ struct MANGOS_DLL_DECL boss_right_armAI : public ScriptedAI
             {
                 if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                 {
-                    pTarget->CastSpell(pTarget, m_bIsRegularMode ? SPELL_STONE_GRIP : SPELL_STONE_GRIP_H, false);
+                    pTarget->CastSpell(pTarget, m_bIsRegularMode ? SPELL_STONE_GRIP : SPELL_STONE_GRIP_H, true);
                     m_uiGripTargetGUID[i] = pTarget->GetGUID();
                 }
             }
@@ -472,11 +472,11 @@ struct MANGOS_DLL_DECL boss_kologarnAI : public ScriptedAI
         if (m_uiSpell_Timer < uiDiff)
         {
             if (!m_bIsRightDead && !m_bIsLeftDead)
-                DoCast(m_creature->getVictim(), m_bIsRegularMode ? SPELL_OVERHEAD_SMASH : SPELL_OVERHEAD_SMASH_H);
+                DoCastSpellIfCan(m_creature->getVictim(), m_bIsRegularMode ? SPELL_OVERHEAD_SMASH : SPELL_OVERHEAD_SMASH_H);
             else if (m_bIsRightDead && m_bIsLeftDead)
-                DoCast(m_creature->getVictim(), m_bIsRegularMode ? SPELL_STONE_SHOUT : SPELL_STONE_SHOUT_H);
+                DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_STONE_SHOUT : SPELL_STONE_SHOUT_H);
             else
-                DoCast(m_creature->getVictim(), m_bIsRegularMode ? SPELL_ONE_ARMED_SMASH : SPELL_ONE_ARMED_SMASH_H);
+                DoCastSpellIfCan(m_creature->getVictim(), m_bIsRegularMode ? SPELL_ONE_ARMED_SMASH : SPELL_ONE_ARMED_SMASH_H);
             m_uiSpell_Timer = 20000;
         }
         else m_uiSpell_Timer -= uiDiff;
@@ -484,11 +484,8 @@ struct MANGOS_DLL_DECL boss_kologarnAI : public ScriptedAI
         // to be fixed -> only damage, no animation
         if (m_uiEyebeah_Timer < uiDiff)
         {
-            if (Unit* target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
-            {
-                DoCast(target, SPELL_FOCUSED_EYEBEAM_VISUAL);
-                DoCast(target, m_bIsRegularMode ? SPELL_FOCUSED_EYEBEAM : SPELL_FOCUSED_EYEBEAM_H, true);
-            }
+            DoCastSpellIfCan(m_creature, SPELL_FOCUSED_EYEBEAM_VISUAL);
+            DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_FOCUSED_EYEBEAM : SPELL_FOCUSED_EYEBEAM_H, CAST_TRIGGERED);
             m_uiEyebeah_Timer = 20000;
         }
         else m_uiEyebeah_Timer -= uiDiff;
@@ -586,7 +583,7 @@ struct MANGOS_DLL_DECL boss_kologarnAI : public ScriptedAI
 
             //Petrifying breath
             if (!m_creature->IsWithinDistInMap(m_creature->getVictim(), 5))
-                DoCast(m_creature, m_bIsRegularMode ? SPELL_PETRIFYING_BREATH : SPELL_PETRIFYING_BREATH_H);
+                DoCastSpellIfCan(m_creature->getVictim(), m_bIsRegularMode ? SPELL_PETRIFYING_BREATH : SPELL_PETRIFYING_BREATH_H);
 
             m_uiCheck_Timer = 500;
         }
@@ -599,7 +596,7 @@ struct MANGOS_DLL_DECL boss_kologarnAI : public ScriptedAI
         if (m_uiEnrageTimer < uiDiff)
         {
             DoScriptText(SAY_BERSERK, m_creature);
-            DoCast(m_creature, SPELL_ENRAGE);
+            DoCastSpellIfCan(m_creature, SPELL_ENRAGE);
             m_uiEnrageTimer = 30000;
         }
         else m_uiEnrageTimer -= uiDiff;
