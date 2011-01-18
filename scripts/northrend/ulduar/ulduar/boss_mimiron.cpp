@@ -150,15 +150,6 @@ enum MimironPhase
     PHASE_OUTRO     = 9,
 };
 
-// TODO BROKEN, unknown how it should be!!!
-enum dummy
-{
-    TYPE_LEVIATHAN_MK = 99,
-    TYPE_MIMIRON_PHASE = 99,
-    TYPE_VX001 = 99,
-    TYPE_AERIAL_UNIT = 99,
-};
-
 #define CENTER_X            2744.732f
 #define CENTER_Y            2569.479f
 #define CENTER_Z            364.312f

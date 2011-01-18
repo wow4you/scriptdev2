@@ -183,13 +183,6 @@ enum phases
     PHASE_OUTRO         = 4,
 };
 
-// TODO BROKEN, unknown how to correctly fix it.
-enum dummy
-{
-    TYPE_RUNIC_COLOSSUS = 99,
-    TYPE_RUNE_GIANT = 99,
-};
-
 #define LOC_Z                       419.5f
 struct LocationsXY
 {

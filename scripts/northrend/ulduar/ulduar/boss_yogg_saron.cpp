@@ -249,14 +249,6 @@ enum achievs
     ACHIEV_NOT_GETTING_OLDER_H  = 3013,
 };
 
-// TODO BROKEN, unknown how should be
-enum dummy
-{
-    TYPE_YOGG_PHASE = 99,
-    TYPE_VISION_PHASE = 99,
-    TYPE_YOGG_BRAIN = 99
-};
-
 //Positional defines
 struct LocationsXY
 {
