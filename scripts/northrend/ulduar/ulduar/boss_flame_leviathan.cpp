@@ -224,9 +224,10 @@ struct MANGOS_DLL_DECL boss_flame_leviathan : public ScriptedAI
                 case 1: DoScriptText(SAY_CHANGE_2, m_creature); break;
                 case 2: DoScriptText(SAY_CHANGE_3, m_creature); break;
             }
-            DoScriptText(EMOTE_PURSUE, m_creature);
+
             if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
             {
+                DoScriptText(EMOTE_PURSUE, m_creature, pTarget);
                 m_creature->AddThreat(pTarget, 100.0f);
                 DoCast(pTarget, SPELL_PURSUED);
             }
