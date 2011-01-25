@@ -208,6 +208,13 @@ enum
     ACHIEV_KNOCK_KNOCK_KNOCK_WOOD_H = 3187,
 };
 
+
+static const uint32 aGiftSpells[2][4] =
+{
+    {SPELL_SUMMON_CHEST_1, SPELL_SUMMON_CHEST_2, SPELL_SUMMON_CHEST_3, SPELL_SUMMON_CHEST_4},
+    {SPELL_SUMMON_CHEST_5, SPELL_SUMMON_CHEST_6, SPELL_SUMMON_CHEST_7, SPELL_SUMMON_CHEST_8}
+};
+
 // Iron roots & stranghned iron roots
 struct MANGOS_DLL_DECL mob_iron_rootsAI : public ScriptedAI
 {
@@ -587,7 +594,6 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
     uint32 m_uiGroundTremorTimer;
 
     uint32 m_uiThreeWaveCheckTimer;
-    bool m_bWaveCheck;
     uint64 m_uiWaterSpiritGUID;
     uint64 m_uiStormLasherGUID;
     uint64 m_uiSnapLasherGUID;
@@ -613,9 +619,8 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
         m_uiStrenghtenIronRootsTimer    = 25000 + urand(1000, 5000);
         m_uiGroundTremorTimer           = 20000;
         m_uiNatureBombTimer             = 7000;
-        m_uiThreeWaveCheckTimer         = 1000;
+        m_uiThreeWaveCheckTimer         = 10000;
         m_uiAchievProgress              = 10000;
-        m_bWaveCheck                    = false;
         m_uiWaterSpiritGUID             = 0;
         m_uiStormLasherGUID             = 0;
         m_uiSnapLasherGUID              = 0;
@@ -663,8 +668,8 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
             {
                 if (pBrightleaf->isAlive())
                 {
-                    pBrightleaf->CastSpell(pBrightleaf, SPELL_DRAINED_OF_POWER, false);
-                    pBrightleaf->CastSpell(m_creature, SPELL_EFFECT_BRIGHTLEAF, false);
+                    pBrightleaf->CastSpell(pBrightleaf, SPELL_DRAINED_OF_POWER, true);
+                    pBrightleaf->CastSpell(m_creature, SPELL_EFFECT_BRIGHTLEAF, true);
                     m_bIsBrightleafAlive = true;
                     m_uiAchievProgress += 1;
                 }
@@ -677,8 +682,8 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
             {
                 if (pIronbranch->isAlive())
                 {
-                    pIronbranch->CastSpell(pIronbranch, SPELL_DRAINED_OF_POWER, false);
-                    pIronbranch->CastSpell(m_creature, SPELL_EFFECT_IRONBRANCH, false);
+                    pIronbranch->CastSpell(pIronbranch, SPELL_DRAINED_OF_POWER, true);
+                    pIronbranch->CastSpell(m_creature, SPELL_EFFECT_IRONBRANCH, true);
                     m_bIsIronbranchAlive = true;
                     m_uiAchievProgress += 1;
                 }
@@ -691,8 +696,8 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
             {
                 if (pStonebark->isAlive())
                 {
-                    pStonebark->CastSpell(pStonebark, SPELL_DRAINED_OF_POWER, false);
-                    pStonebark->CastSpell(m_creature, SPELL_EFFECT_STONEBARK, false);
+                    pStonebark->CastSpell(pStonebark, SPELL_DRAINED_OF_POWER, true);
+                    pStonebark->CastSpell(m_creature, SPELL_EFFECT_STONEBARK, true);
                     m_bIsStonebarkAlive = true;
                     m_uiAchievProgress += 1;
                 }
@@ -744,6 +749,9 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
             m_pInstance->SetData(TYPE_FREYA, DONE);
         }
 
+        if (m_uiAchievProgress < 4)
+            DoCastSpellIfCan(m_creature, aGiftSpells[m_bIsRegularMode ? 0 : 1][m_uiAchievProgress], CAST_TRIGGERED);
+
         m_creature->ForcedDespawn();
     }
 
@@ -772,13 +780,13 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
         DoScriptText(urand(0, 1) ? SAY_SLAY_1 : SAY_SLAY_2, m_creature);
     }
 
-    // summon 12 Lashers. Should be done by a spell which needs core fix
+    // summon 10 Lashers. Should be done by a spell which needs core fix
     void SummonLashers()
     {
         DoScriptText(SAY_ADDS_LASHER, m_creature);
         int i;
         float x, y;
-        for (i = 0; i < 12; ++i)
+        for (i = 0; i < 10; ++i)
         {
             x = (rand_norm() * 30.0f) - 15.0f;
             y = (rand_norm() * 30.0f) - 15.0f;
@@ -803,28 +811,32 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
         }
     }
 
+    void SummonedCreatureJustDied(Creature* pSummoned)
+    {
+        if (pSummoned->GetEntry() == NPC_WATER_SPIRIT || pSummoned->GetEntry() == NPC_STORM_LASHER || pSummoned->GetEntry() == NPC_SNAPLASHER)
+            if (!m_uiThreeWaveCheckTimer)
+                m_uiThreeWaveCheckTimer = 10000;
+    }
     // summmon the 3 elementals. Should be done by a spell which needs core fix.
     void SummonElementals()
     {
         DoScriptText(SAY_ADDS_TRIO, m_creature);
-        m_bWaveCheck = true;
-        m_uiThreeWaveCheckTimer = 2000;
 
-        if (Creature* pSpirit = DoSpawnCreature(NPC_WATER_SPIRIT, 0, 0, 0, 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 10000))
+        if (Creature* pSpirit = DoSpawnCreature(NPC_WATER_SPIRIT, 0, 0, 0, 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 15000))
         {
             m_uiWaterSpiritGUID = pSpirit->GetGUID();
             if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                 pSpirit->AddThreat(pTarget, 1.0f);
         }
 
-        if (Creature* pStormLasher = DoSpawnCreature(NPC_STORM_LASHER, 0, 0, 0, 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 10000))
+        if (Creature* pStormLasher = DoSpawnCreature(NPC_STORM_LASHER, 0, 0, 0, 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 15000))
         {
             m_uiStormLasherGUID = pStormLasher->GetGUID();
             if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                 pStormLasher->AddThreat(pTarget, 1.0f);
         }
 
-        if (Creature* pSnapLasher = DoSpawnCreature(NPC_SNAPLASHER, 0, 0, 0, 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 10000))
+        if (Creature* pSnapLasher = DoSpawnCreature(NPC_SNAPLASHER, 0, 0, 0, 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 15000))
         {
             m_uiSnapLasherGUID = pSnapLasher->GetGUID();
             if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
@@ -860,38 +872,41 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
                 DoCast(m_creature, m_bIsRegularMode ? SPELL_TOUCH_OF_EONAR : SPELL_TOUCH_OF_EONAR_H);
 
             // check if the 3 elementals die at the same time
-            if (m_uiThreeWaveCheckTimer < uiDiff && m_bWaveCheck)
+            if (m_uiThreeWaveCheckTimer)
             {
-                Creature* pWaterSpirit = m_pInstance->instance->GetCreature(m_uiWaterSpiritGUID);
-                Creature* pStormLasher = m_pInstance->instance->GetCreature(m_uiStormLasherGUID);
-                Creature* pSnapLasher = m_pInstance->instance->GetCreature(m_uiSnapLasherGUID);
-
-                if (pWaterSpirit && pStormLasher && pSnapLasher)
+                if (m_uiThreeWaveCheckTimer <= uiDiff)
                 {
-                    if (!pWaterSpirit->isAlive() && !pStormLasher->isAlive() && !pSnapLasher->isAlive())
+                    Creature* pWaterSpirit = m_pInstance->instance->GetCreature(m_uiWaterSpiritGUID);
+                    Creature* pStormLasher = m_pInstance->instance->GetCreature(m_uiStormLasherGUID);
+                    Creature* pSnapLasher = m_pInstance->instance->GetCreature(m_uiSnapLasherGUID);
+
+                    m_uiThreeWaveCheckTimer = 0;
+
+                    if (pWaterSpirit && pStormLasher && pSnapLasher)
                     {
-                        m_bWaveCheck = false;
-                        if (SpellAuraHolder* natureAura = m_creature->GetSpellAuraHolder(SPELL_ATTUNED_TO_NATURE))
+                        if (!pWaterSpirit->isAlive() && !pStormLasher->isAlive() && !pSnapLasher->isAlive())
                         {
-                            if (natureAura->ModStackAmount(-30))
-                                m_creature->RemoveAurasDueToSpell(SPELL_ATTUNED_TO_NATURE);
+                            if (SpellAuraHolder* natureAura = m_creature->GetSpellAuraHolder(SPELL_ATTUNED_TO_NATURE))
+                            {
+                                if (natureAura->ModStackAmount(-30))
+                                    m_creature->RemoveAurasDueToSpell(SPELL_ATTUNED_TO_NATURE);
+                            }
+                        }
+                        else
+                        {
+                            // respawn the dead ones
+                            if (!pWaterSpirit->isAlive())
+                                pWaterSpirit->Respawn();
+                            if (!pSnapLasher->isAlive())
+                                pSnapLasher->Respawn();
+                            if (!pStormLasher->isAlive())
+                                pStormLasher->Respawn();
                         }
                     }
-                    else
-                    {
-                        // respawn the dead ones
-                        if (!pWaterSpirit->isAlive())
-                            pWaterSpirit->Respawn();
-                        if (!pSnapLasher->isAlive())
-                            pSnapLasher->Respawn();
-                        if (!pStormLasher->isAlive())
-                            pStormLasher->Respawn();
-                    }
                 }
-                m_uiThreeWaveCheckTimer = 2000;
+                else
+                    m_uiThreeWaveCheckTimer -= uiDiff;
             }
-            else
-                m_uiThreeWaveCheckTimer -= uiDiff;
 
             // Hardmode
             if (m_bIsBrightleafAlive)
