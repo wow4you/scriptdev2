@@ -1772,7 +1772,7 @@ struct MANGOS_DLL_DECL mob_proximity_mineAI : public ScriptedAI
 
         if (m_uiRangeCheckTimer < uiDiff)
         {
-            if (m_creature->IsWithinDistInMap(m_creature->getVictim(), 2))
+            if (m_creature->CanReachWithMeleeAttack(m_creature->getVictim()))
             {
                 DoCast(m_creature, m_bIsRegularMode ? SPELL_EXPLOSION : SPELL_EXPLOSION_H);
                 m_uiDieTimer = 500;
@@ -1824,7 +1824,7 @@ struct MANGOS_DLL_DECL mob_bomb_botAI : public ScriptedAI
 
         if (m_uiRangeCheckTimer < uiDiff)
         {
-            if (m_creature->IsWithinDistInMap(m_creature->getVictim(), 2))
+            if (m_creature->CanReachWithMeleeAttack(m_creature->getVictim()))
             {
                 DoCast(m_creature, SPELL_BOMB_BOT);
                 m_uiDieTimer = 500;

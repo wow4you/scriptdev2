@@ -582,7 +582,7 @@ struct MANGOS_DLL_DECL boss_kologarnAI : public ScriptedAI
             }
 
             //Petrifying breath
-            if (!m_creature->IsWithinDistInMap(m_creature->getVictim(), 5))
+            if (!m_creature->CanReachWithMeleeAttack(m_creature->getVictim()))
                 DoCastSpellIfCan(m_creature->getVictim(), m_bIsRegularMode ? SPELL_PETRIFYING_BREATH : SPELL_PETRIFYING_BREATH_H);
 
             m_uiCheck_Timer = 500;

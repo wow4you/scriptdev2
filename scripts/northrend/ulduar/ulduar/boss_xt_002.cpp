@@ -244,19 +244,13 @@ struct MANGOS_DLL_DECL mob_boombotAI : public ScriptedAI
         }
     }
 
-    void DoMeleeAttackIfReady()
-    {
-        //If we are within range melee the target
-        if (m_creature->IsWithinDistInMap(m_creature->getVictim(), ATTACK_DISTANCE))
-            DoCast(m_creature, SPELL_BOOM);
-    }
-
     void UpdateAI(const uint32 diff)
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
 
-        DoMeleeAttackIfReady();
+        if (m_creature->GetCombatDistance(m_creature->getVictim()) < 10.0f)
+            DoCastSpellIfCan(m_creature, SPELL_BOOM);
     }
 };
 

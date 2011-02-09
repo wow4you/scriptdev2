@@ -1266,7 +1266,7 @@ struct MANGOS_DLL_DECL boss_runic_colossusAI : public ScriptedAI
         }
 
         if (pWho->isTargetableForAttack() && pWho->isInAccessablePlaceFor(m_creature) &&
-                m_bIsSmash && pWho->GetTypeId() == TYPEID_PLAYER && m_creature->IsWithinDistInMap(pWho, 5) && m_creature->IsWithinLOSInMap(pWho))
+                m_bIsSmash && pWho->GetTypeId() == TYPEID_PLAYER && m_creature->CanReachWithMeleeAttack(pWho) && m_creature->IsWithinLOSInMap(pWho))
         {
             m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
             m_bMustSmash = false;
