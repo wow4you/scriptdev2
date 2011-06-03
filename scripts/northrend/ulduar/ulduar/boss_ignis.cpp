@@ -95,7 +95,7 @@ struct MANGOS_DLL_DECL npc_iron_constructAI : public ScriptedAI
         if (!m_pInstance)
             return;
 
-        if (Creature* pIgnis = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_IGNIS)))
+        if (Creature* pIgnis = m_pInstance->GetSingleCreatureFromStorage(NPC_IGNIS))
             DoCastSpellIfCan(pIgnis, SPELL_STRENGTH_OF_CREATOR_EFFECT, CAST_TRIGGERED);
     }
 

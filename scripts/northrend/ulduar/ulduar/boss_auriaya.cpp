@@ -64,11 +64,11 @@ enum
     NPC_FERAL_DEFENDER_STALKER          = 34096,
 
     //sanctum sentry
-    SPELL_RIP_FLESH             = 64375,
-    SPELL_RIP_FLESH_H           = 64667,
-    SPELL_SAVAGE_POUNCE         = 64666,
-    SPELL_SAVAGE_POUNCE_H       = 64374,
-    SPELL_STRENGHT_OF_PACK      = 64369,
+    SPELL_RIP_FLESH                = 64375,
+    SPELL_RIP_FLESH_H            = 64667,
+    SPELL_SAVAGE_POUNCE            = 64666,
+    SPELL_SAVAGE_POUNCE_H        = 64374,
+    SPELL_STRENGHT_OF_PACK        = 64369,
 };
 
 struct MANGOS_DLL_DECL boss_auriayaAI : public ScriptedAI
@@ -376,7 +376,7 @@ struct MANGOS_DLL_DECL mob_sanctum_sentryAI : public ScriptedAI
     {
         if (m_pInstance)
         {
-            if (Creature* pTemp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_AURIAYA)))
+            if (Creature* pTemp = m_pInstance->GetSingleCreatureFromStorage(NPC_AURIAYA))
             {
                 if (pTemp->isAlive())
                     pTemp->SetInCombatWithZone();
@@ -406,7 +406,7 @@ struct MANGOS_DLL_DECL mob_sanctum_sentryAI : public ScriptedAI
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
         {
             // they should follow Auriaya, but this looks ugly!
-            if (Creature* pTemp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_AURIAYA)))
+            if (Creature* pTemp = m_pInstance->GetSingleCreatureFromStorage(NPC_AURIAYA))
             {
                 if (pTemp->isAlive())
                 {

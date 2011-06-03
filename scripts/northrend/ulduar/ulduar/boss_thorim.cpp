@@ -90,10 +90,10 @@ enum
     MOB_DARK_RUNE_WARBRINGER        = 32877,
 
     // traps
-    NPC_TRAP_BUNNY                  = 33725,
-    NPC_TRAP_BUNNY2                 = 33054,
-    SPELL_PARALYTIC_FIELD           = 63540,
-    SPELL_PARALYTIC_FIELD2          = 62241,
+    NPC_TRAP_BUNNY                    = 33725,
+    NPC_TRAP_BUNNY2                    = 33054,
+    SPELL_PARALYTIC_FIELD            = 63540,
+    SPELL_PARALYTIC_FIELD2            = 62241,
 
     // mobs spells
     // acolyte
@@ -135,11 +135,11 @@ enum
     MOB_DARK_RUNE_ACOLYTE           = 33110,
     MOB_IRON_RING_GUARD             = 32874,
     MINIBOSS_RUNIC_COLOSSUS         = 32872,
-    SPELL_SMASH                     = 62339,
+    SPELL_SMASH                        = 62339,
     //SPELL_SMASH_RIGHT               = 62414,
-    SPELL_RUNIC_SMASH               = 62058,
-    SPELL_RUNIC_SMASH2              = 62057,
-    SPELL_RUNIC_SMASH_DMG           = 62465,
+    SPELL_RUNIC_SMASH                = 62058,
+    SPELL_RUNIC_SMASH2                = 62057,
+    SPELL_RUNIC_SMASH_DMG            = 62465,
     SPELL_RUNIC_BARRIER             = 62338,
     SPELL_CHARGE                    = 62613,
     SPELL_CHARGE_H                  = 62614,
@@ -152,21 +152,21 @@ enum
     SPELL_RUNE_DETONATION           = 62526,
 
     // pre adds:
-    SPELL_ACID_BREATH               = 62315,
-    SPELL_ACID_BREATH_H             = 62415,
-    SPELL_SWEEP                     = 62316,
-    SPELL_SWEEP_H                   = 62417,
+    SPELL_ACID_BREATH                = 62315,
+    SPELL_ACID_BREATH_H                = 62415,
+    SPELL_SWEEP                        = 62316,
+    SPELL_SWEEP_H                    = 62417,
     // captains
-    NPC_CAPTAIN_ALY                 = 32908,
-    NPC_CAPTAIN_HORDE               = 32907,
-    SPELL_DEVASTATE                 = 62317,
-    SPELL_HEROIC_STRIKE             = 62444,
+    NPC_CAPTAIN_ALY                    = 32908,
+    NPC_CAPTAIN_HORDE                = 32907,
+    SPELL_DEVASTATE                    = 62317,
+    SPELL_HEROIC_STRIKE                = 62444,
     // mercenary
-    NPC_MERCENARY_ALY               = 32885,
-    NPC_MERCENARY_HORDE             = 32883,
-    SPELL_SHOOT                     = 16496,
-    SPELL_BARBED_SHOT               = 62318,
-    SPELL_WING_CLIP                 = 40652,
+    NPC_MERCENARY_ALY                = 32885,
+    NPC_MERCENARY_HORDE                = 32883,
+    SPELL_SHOOT                        = 16496,
+    SPELL_BARBED_SHOT                = 62318,
+    SPELL_WING_CLIP                    = 40652,
 
     ACHIEV_LOSE_ILLUSION            = 3176,
     ACHIEV_LOSE_ILLUSION_H          = 3183,
@@ -176,11 +176,11 @@ enum
 
 enum phases
 {
-    PHASE_PREADDS       = 0,
-    PHASE_INTRO         = 1,
-    PHASE_BALCONY       = 2,
-    PHASE_ARENA         = 3,
-    PHASE_OUTRO         = 4,
+    PHASE_PREADDS        = 0,
+    PHASE_INTRO            = 1,
+    PHASE_BALCONY        = 2,
+    PHASE_ARENA            = 3,
+    PHASE_OUTRO            = 4,
 };
 
 #define LOC_Z                       419.5f
@@ -635,8 +635,8 @@ struct MANGOS_DLL_DECL boss_thorimAI : public ScriptedAI
 
     void Reset()
     {
-        m_uiPreAddsKilled       = 0;
-        m_uiPhase               = PHASE_PREADDS;
+        m_uiPreAddsKilled        = 0;
+        m_uiPhase                = PHASE_PREADDS;
         SetCombatMovement(false);
 
         m_bIsHardMode           = true;
@@ -691,21 +691,21 @@ struct MANGOS_DLL_DECL boss_thorimAI : public ScriptedAI
         if (m_pInstance)
         {
             // respawn runic colossus
-            if (Creature* pColossus = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_RUNIC_COLOSSUS)))
+            if (Creature* pColossus = m_pInstance->GetSingleCreatureFromStorage(NPC_RUNIC_COLOSSUS))
             {
                 if (!pColossus->isAlive())
                     pColossus->Respawn();
             }
 
             // respawn ancient rune giant
-            if (Creature* pRuneGiant = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_RUNE_GIANT)))
+            if (Creature* pRuneGiant = m_pInstance->GetSingleCreatureFromStorage(NPC_RUNE_GIANT))
             {
                 if (!pRuneGiant->isAlive())
                     pRuneGiant->Respawn();
             }
 
             // respawn jormungar
-            if (Creature* pJormungar = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_JORMUNGAR_BEHEMOTH)))
+            if (Creature* pJormungar = m_pInstance->GetSingleCreatureFromStorage(NPC_JORMUNGAR_BEHEMOTH))
             {
                 if (!pJormungar->isAlive())
                     pJormungar->Respawn();
@@ -786,8 +786,8 @@ struct MANGOS_DLL_DECL boss_thorimAI : public ScriptedAI
 
     void StartEncounter()
     {
-        m_uiPhase   = PHASE_INTRO;
-        m_bIsIntro  = true;
+        m_uiPhase    = PHASE_INTRO;
+        m_bIsIntro    = true;
     }
 
     // hacky way for berserk in phase 1 :)
@@ -1240,7 +1240,7 @@ struct MANGOS_DLL_DECL boss_runic_colossusAI : public ScriptedAI
         m_uiSpellTimer = urand(5000, 10000);
         m_uiRunicBarrierTimer = 15000;
         m_uiSmashTimer  = 3000;
-        m_uiSmashTargetGUID = 0;
+        m_uiSmashTargetGUID    = 0;
         m_bIsSmash  = false;
         m_bMustSmash = true;
 
@@ -1448,17 +1448,17 @@ struct MANGOS_DLL_DECL mob_thorim_preaddsAI : public ScriptedAI
     void Reset()
     {
         // jormungar
-        m_uiAcidBreathTimer     = urand(7000, 14000);
-        m_uiSweepTimer          = urand(15000, 20000);
+        m_uiAcidBreathTimer        = urand(7000, 14000);
+        m_uiSweepTimer            = urand(15000, 20000);
 
         // captain
-        m_uiDevastateTimer      = urand(3000, 7000);
-        m_uiHeroicStrikeTimer   = urand(8000, 15000);
+        m_uiDevastateTimer        = urand(3000, 7000);
+        m_uiHeroicStrikeTimer    = urand(8000, 15000);
 
         // mercenary
-        m_uiShootTimer          = 1000;
-        m_uiBarbedShotTimer     = urand(7000, 10000);
-        m_uiWingClipTimer       = urand(10000, 15000);
+        m_uiShootTimer            = 1000;
+        m_uiBarbedShotTimer        = urand(7000, 10000);
+        m_uiWingClipTimer        = urand(10000, 15000);
     }
 
     void AttackStart(Unit* pWho)
@@ -1478,7 +1478,7 @@ struct MANGOS_DLL_DECL mob_thorim_preaddsAI : public ScriptedAI
     void JustDied(Unit* killer)
     {
         // start the encounter
-        if (Creature* pThorim = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_THORIM)))
+        if (Creature* pThorim = m_pInstance->GetSingleCreatureFromStorage(NPC_THORIM))
         {
             if (pThorim->isAlive())
                 ((boss_thorimAI*)pThorim->AI())->m_uiPreAddsKilled += 1;

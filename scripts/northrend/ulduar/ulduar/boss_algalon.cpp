@@ -859,7 +859,7 @@ bool GOUse_go_celestial_acces(Player* pPlayer, GameObject* pGo)
     }
 
     // start encounter
-    if (Creature* pAlgalon = pGo->GetMap()->GetCreature(m_pInstance->GetData64(NPC_ALGALON)))
+    if (Creature* pAlgalon = m_pInstance->GetSingleCreatureFromStorage(NPC_ALGALON))
     {
         if (pAlgalon->isAlive())
         {
@@ -867,8 +867,7 @@ bool GOUse_go_celestial_acces(Player* pPlayer, GameObject* pGo)
             pGo->SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_NO_INTERACT);
 
             // open celestial door
-            if (GameObject* pDoor = m_pInstance->instance->GetGameObject(m_pInstance->GetData64(GO_CELESTIAL_DOOR)))
-                m_pInstance->DoUseDoorOrButton(pDoor->GetGUID());
+            m_pInstance->DoUseDoorOrButton(GO_CELESTIAL_DOOR);
         }
     }
 

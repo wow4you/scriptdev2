@@ -164,7 +164,7 @@ enum
     SPELL_SHATTERED_ILLUSION    = 64173,
     SPELL_INDUCE_MADNESS        = 64059,
     SPELL_ILLUSION_ROOM         = 63988,    // reduce speed
-    SPELL_ILLUSION_CANCEL       = 63993,
+    SPELL_ILLUSION_CANCEL        = 63993,
 
 
     // tentacules
@@ -522,7 +522,7 @@ struct MANGOS_DLL_DECL boss_yogg_saronAI : public ScriptedAI
                 m_uiKeepersActive += 1;
             }
 
-            if (Creature* pSara = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_SARA)))
+            if (Creature* pSara = m_pInstance->GetSingleCreatureFromStorage(NPC_SARA))
                 DoScriptText(SAY_SARA_AGGRO, pSara);
         }
     }
@@ -533,7 +533,7 @@ struct MANGOS_DLL_DECL boss_yogg_saronAI : public ScriptedAI
         {
             m_pInstance->SetData(TYPE_YOGGSARON, NOT_STARTED);
 
-            if (Creature* pSara = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_SARA)))
+            if (Creature* pSara = m_pInstance->GetSingleCreatureFromStorage(NPC_SARA))
             {
                 if (!pSara->isAlive())
                     pSara->Respawn();
@@ -541,7 +541,7 @@ struct MANGOS_DLL_DECL boss_yogg_saronAI : public ScriptedAI
                     pSara->AI()->EnterEvadeMode();
             }
 
-            if (Creature* pYoggBrain = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_YOGG_BRAIN)))
+            if (Creature* pYoggBrain = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGG_BRAIN))
             {
                 if (!pYoggBrain->isAlive())
                     pYoggBrain->Respawn();
@@ -592,13 +592,13 @@ struct MANGOS_DLL_DECL boss_yogg_saronAI : public ScriptedAI
 
         }
 
-        if (Creature* pSara = (Creature*)m_creature->GetMap()->GetUnit(m_pInstance->GetData64(NPC_SARA)))
+        if (Creature* pSara = m_pInstance->GetSingleCreatureFromStorage(NPC_SARA))
         {
             if (pSara->isAlive())
                 pSara->DealDamage(pSara, pSara->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
         }
 
-        if (Creature* pYoggBrain = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_YOGG_BRAIN)))
+        if (Creature* pYoggBrain = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGG_BRAIN))
         {
             if (pYoggBrain->isAlive())
                 pYoggBrain->DealDamage(pYoggBrain, pYoggBrain->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
@@ -633,10 +633,10 @@ struct MANGOS_DLL_DECL boss_yogg_saronAI : public ScriptedAI
 
         m_uiSummonTimer = urand(15000, 20000);
 
-        if (Creature* pSara = (Creature*)m_creature->GetMap()->GetUnit(m_pInstance->GetData64(NPC_SARA)))
+        if (Creature* pSara = m_pInstance->GetSingleCreatureFromStorage(NPC_SARA))
             pSara->ForcedDespawn();
 
-        if (Creature* pYoggBrain = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_YOGG_BRAIN)))
+        if (Creature* pYoggBrain = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGG_BRAIN))
             pYoggBrain->DealDamage(pYoggBrain, pYoggBrain->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
     }
 
@@ -982,7 +982,7 @@ struct MANGOS_DLL_DECL boss_brain_of_yogg_saronAI : public ScriptedAI
     {
         if (uiDamage > 0 && !m_bHasShattered)
         {
-            if (Creature* pYogg = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_YOGGSARON)))
+            if (Creature* pYogg = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGGSARON))
             {
                 ((boss_yogg_saronAI*)pYogg->AI())->m_bIsShatter = true;
                 // spell bugged, need core fix. It should be cast on tentacles, not on players!
@@ -1304,7 +1304,7 @@ struct MANGOS_DLL_DECL boss_brain_of_yogg_saronAI : public ScriptedAI
                 m_pInstance->SetData(TYPE_YOGG_PHASE, PHASE_OLD_GOD);
             }
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
-            if (Creature* pYogg = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_YOGGSARON)))
+            if (Creature* pYogg = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGGSARON))
             {
                 ((boss_yogg_saronAI*)pYogg->AI())->StartThirdPhase();
                 pYogg->RemoveAurasDueToSpell(SPELL_SHATTERED_ILLUSION);
@@ -1335,7 +1335,7 @@ struct MANGOS_DLL_DECL boss_brain_of_yogg_saronAI : public ScriptedAI
         // Induced madness need core support, it should make the players insane
         if (m_uiMadnessTimer < uiDiff)
         {
-            if (Creature* pYogg = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_YOGGSARON)))
+            if (Creature* pYogg = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGGSARON))
             {
                 ((boss_yogg_saronAI*)pYogg->AI())->m_bIsShatter = false;
                 ((boss_yogg_saronAI*)pYogg->AI())->m_uiSummonTimer = urand(5000, 8000);
@@ -1413,7 +1413,7 @@ struct MANGOS_DLL_DECL boss_saraAI : public ScriptedAI
         m_uiSarasFervorTimer    = urand(10000, 15000);
         m_uiSarasBlessingTimer  = urand(15000, 20000);
         m_uiSarasAngerTimer     = urand(20000, 25000);
-        m_uiAllVisions          = 0;
+        m_uiAllVisions            = 0;
 
         // transition
         m_bIsOutro              = false;
@@ -1430,7 +1430,7 @@ struct MANGOS_DLL_DECL boss_saraAI : public ScriptedAI
         m_uiBrainLinkEndTimer   = 0;
         m_bIsBrainLink          = false;
 
-        m_uiFirstVision         = 0;
+        m_uiFirstVision            = 0;
         m_uiSecondVision        = 0;
 
         m_uiLinkTarget1GUID     = 0;
@@ -1555,7 +1555,7 @@ struct MANGOS_DLL_DECL boss_saraAI : public ScriptedAI
         // summon portals
         SummonPortals();
         // start the vision
-        if (Creature* pYoggBrain = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_YOGG_BRAIN)))
+        if (Creature* pYoggBrain = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGG_BRAIN))
         {
             if (pYoggBrain->isAlive())
                 ((boss_brain_of_yogg_saronAI*)pYoggBrain->AI())->StartVisions();
@@ -1611,7 +1611,7 @@ struct MANGOS_DLL_DECL boss_saraAI : public ScriptedAI
                 if (!m_bIsOutro)
                 {
                     // wipe check
-                    if (Creature* pYogg = (Creature*)m_creature->GetMap()->GetUnit(m_pInstance->GetData64(NPC_YOGGSARON)))
+                    if (Creature* pYogg = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGGSARON))
                     {
                         if (!pYogg->getVictim() || !pYogg->SelectHostileTarget() || pYogg->getVictim() == m_creature)
                         {
@@ -1637,7 +1637,7 @@ struct MANGOS_DLL_DECL boss_saraAI : public ScriptedAI
 
                     if (m_uiSarasFervorTimer < uiDiff)
                     {
-                        if (Creature* pYogg = (Creature*)m_creature->GetMap()->GetUnit(m_pInstance->GetData64(NPC_YOGGSARON)))
+                        if (Creature* pYogg = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGGSARON))
                         {
                             if (Unit* pTarget = pYogg->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                             {
@@ -1653,7 +1653,7 @@ struct MANGOS_DLL_DECL boss_saraAI : public ScriptedAI
 
                     if (m_uiSarasBlessingTimer < uiDiff)
                     {
-                        if (Creature* pYogg = (Creature*)m_creature->GetMap()->GetUnit(m_pInstance->GetData64(NPC_YOGGSARON)))
+                        if (Creature* pYogg = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGGSARON))
                         {
                             if (Unit* pTarget = pYogg->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                             {
@@ -1693,7 +1693,7 @@ struct MANGOS_DLL_DECL boss_saraAI : public ScriptedAI
                             m_uiOutroTimer = 15000;
                             break;
                         case 5:
-                            if (Creature* pYogg = (Creature*)m_creature->GetMap()->GetUnit(m_pInstance->GetData64(NPC_YOGGSARON)))
+                            if (Creature* pYogg = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGGSARON))
                             {
                                 if (Unit* pTarget = pYogg->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                                 {
@@ -1710,7 +1710,7 @@ struct MANGOS_DLL_DECL boss_saraAI : public ScriptedAI
                             m_creature->SetHealth(m_creature->GetMaxHealth());
                             m_creature->GetMap()->CreatureRelocation(m_creature, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ() +  10, 5.9f);
                             m_creature->SendMonsterMove(m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ() +  10, SPLINETYPE_NORMAL, m_creature->GetSplineFlags(), 1);
-                            if (Creature* pYogg = (Creature*)m_creature->GetMap()->GetUnit(m_pInstance->GetData64(NPC_YOGGSARON)))
+                            if (Creature* pYogg = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGGSARON))
                                 ((boss_yogg_saronAI*)pYogg->AI())->StartSecondPhase();
                             m_uiPhaseYellTimer = 30000 + urand(5000, 10000);
                             m_pInstance->SetData(TYPE_YOGG_PHASE, PHASE_TENTACLES);
@@ -1733,7 +1733,7 @@ struct MANGOS_DLL_DECL boss_saraAI : public ScriptedAI
             case PHASE_TENTACLES:
             {
                 // wipe check
-                if (Creature* pYogg = (Creature*)m_creature->GetMap()->GetUnit(m_pInstance->GetData64(NPC_YOGGSARON)))
+                if (Creature* pYogg = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGGSARON))
                 {
                     if (!pYogg->getVictim() || !pYogg->SelectHostileTarget())
                         pYogg->AI()->EnterEvadeMode();
@@ -1750,7 +1750,7 @@ struct MANGOS_DLL_DECL boss_saraAI : public ScriptedAI
                 if (m_uiPortalsTimer < uiDiff && m_uiAllVisions < 3)
                 {
                     SetVisionPhase();
-                    if (Creature* pYogg = (Creature*)m_creature->GetMap()->GetUnit(m_pInstance->GetData64(NPC_YOGGSARON)))
+                    if (Creature* pYogg = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGGSARON))
                         DoScriptText(SAY_MADNESS, pYogg);   // TODO CHECK TEXT
                     m_uiPortalsTimer = 85000;
                 }
@@ -1803,7 +1803,7 @@ struct MANGOS_DLL_DECL boss_saraAI : public ScriptedAI
                 // workaround, should be done by spell
                 if (m_uiDeathRayTimer < uiDiff)
                 {
-                    if (Creature* pYogg = (Creature*)m_creature->GetMap()->GetUnit(m_pInstance->GetData64(NPC_YOGGSARON)))
+                    if (Creature* pYogg = m_pInstance->GetSingleCreatureFromStorage(NPC_YOGGSARON))
                     {
                         for (int i = 0; i < irand(3, 4); i++)
                         {
@@ -2003,7 +2003,7 @@ struct MANGOS_DLL_DECL mob_immortal_guardianAI : public ScriptedAI
     {
         m_uiStack   = 0;
         m_uiHealth  = 90;
-        m_bHasAura  = false;
+        m_bHasAura    = false;
         m_creature->SetRespawnDelay(DAY);
     }
 
@@ -2111,7 +2111,7 @@ struct MANGOS_DLL_DECL mob_guardian_of_yogg_saronAI : public ScriptedAI
 
                 // workaround for dmg Sara
                 // need to find a way to damage Sara by spell!
-                if (Creature* pSara = (Creature*)m_creature->GetMap()->GetUnit(m_pInstance->GetData64(NPC_SARA)))
+                if (Creature* pSara = m_pInstance->GetSingleCreatureFromStorage(NPC_SARA))
                 {
                     if (m_creature->IsWithinDist2d(pSara->GetPositionX(), pSara->GetPositionY(), 15.0f))
                     {
@@ -2137,7 +2137,7 @@ struct MANGOS_DLL_DECL mob_guardian_of_yogg_saronAI : public ScriptedAI
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
 
-        if (Creature* pSara = (Creature*)m_creature->GetMap()->GetUnit(m_pInstance->GetData64(NPC_SARA)))
+        if (Creature* pSara = m_pInstance->GetSingleCreatureFromStorage(NPC_SARA))
         {
             if (m_creature->getVictim() == pSara)
             {

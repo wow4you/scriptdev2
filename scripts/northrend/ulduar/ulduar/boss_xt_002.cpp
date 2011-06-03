@@ -304,7 +304,7 @@ struct MANGOS_DLL_DECL mob_xtheartAI : public ScriptedAI
         if (m_uiDeathTimer < diff)
         {
             // pass damage to boss
-            if (Creature* pTemp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_XT002)))
+            if (Creature* pTemp = m_pInstance->GetSingleCreatureFromStorage(NPC_XT002))
             {
                 if (pTemp->isAlive())
                     pTemp->DealDamage(pTemp, m_uiTotalDamage, NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
