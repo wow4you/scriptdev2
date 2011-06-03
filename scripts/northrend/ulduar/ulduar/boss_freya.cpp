@@ -724,23 +724,18 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
     {
         if (m_pInstance)
         {
-            m_pInstance->SetData(TYPE_FREYA_HARD, 0);
-
             // hacky way to complete achievements; use only if you have this function
             if (m_uiAchievProgress == 1)
             {
                 // m_pInstance->DoCompleteAchievement(m_bIsRegularMode ? ACHIEV_KNOCK_WOOD : ACHIEV_KNOCK_WOOD_H);
-                m_pInstance->SetData(TYPE_FREYA_HARD, 1);
             }
             else if (m_uiAchievProgress == 2)
             {
                 //m_pInstance->DoCompleteAchievement(m_bIsRegularMode ? ACHIEV_KNOCK_KNOCK_WOOD : ACHIEV_KNOCK_KNOCK_WOOD_H);
-                m_pInstance->SetData(TYPE_FREYA_HARD, 2);
             }
             else if (m_uiAchievProgress == 3)
             {
                 //m_pInstance->DoCompleteAchievement(m_bIsRegularMode ? ACHIEV_KNOCK_KNOCK_KNOCK_WOOD : ACHIEV_KNOCK_KNOCK_KNOCK_WOOD_H);
-                m_pInstance->SetData(TYPE_FREYA_HARD, 3);
             }
 
             //if (m_bNature)
@@ -759,11 +754,7 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
     void JustDied(Unit* pKiller)
     {
         if (m_pInstance)
-        {
             m_pInstance->SetData(TYPE_FREYA, DONE);
-            if (m_bIsHardMode)
-                m_pInstance->SetData(TYPE_FREYA_HARD, DONE);
-        }
     }
 
     void DamageTaken(Unit* done_by, uint32& uiDamage)

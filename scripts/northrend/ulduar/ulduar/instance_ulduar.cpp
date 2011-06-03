@@ -434,14 +434,14 @@ void instance_ulduar::SetData(uint32 uiType, uint32 uiData)
             if (uiData == DONE)
             {
                 // Open
-                if (GameObject* pGo = instance->GetGameObject(m_uiHallwayDoorGUID))
+                if (GameObject* pGo = GetSingleGameObjectFromStorage(GO_RUNED_STONE_DOOR))
                     if (pGo->getLootState() == GO_READY)
                         pGo->UseDoorOrButton();
             }
             else
             {
                 // Close
-                if (GameObject* pGo = instance->GetGameObject(m_uiHallwayDoorGUID))
+                if (GameObject* pGo = GetSingleGameObjectFromStorage(GO_RUNED_STONE_DOOR))
                     if (pGo->getLootState() == GO_ACTIVATED)
                         pGo->ResetDoorOrButton();
             }
@@ -451,14 +451,14 @@ void instance_ulduar::SetData(uint32 uiType, uint32 uiData)
             if (uiData == DONE)
             {
                 // Open
-                if (GameObject* pGo = instance->GetGameObject(m_uiThorimEnterDoorGUID))
+                if (GameObject* pGo = GetSingleGameObjectFromStorage(GO_THORIM_STONE_DOOR))
                     if (pGo->getLootState() == GO_READY)
                         pGo->UseDoorOrButton();
             }
             else
             {
                 // Close
-                if (GameObject* pGo = instance->GetGameObject(m_uiThorimEnterDoorGUID))
+                if (GameObject* pGo = GetSingleGameObjectFromStorage(GO_THORIM_STONE_DOOR))
                     if (pGo->getLootState() == GO_ACTIVATED)
                         pGo->ResetDoorOrButton();
             }
