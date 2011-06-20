@@ -867,6 +867,10 @@
 						RelativePath="..\scripts\eastern_kingdoms\scarlet_enclave\ebon_hold.cpp"
 						>
 					</File>
+					<File
+						RelativePath="..\scripts\eastern_kingdoms\scarlet_enclave\world_map_ebon_hold.cpp"
+						>
+					</File>
 				</Filter>
 				<Filter
 					Name="scarlet_monastery"

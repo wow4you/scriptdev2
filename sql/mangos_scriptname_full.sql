@@ -572,6 +572,9 @@ UPDATE gameobject_template SET ScriptName='go_acherus_soul_prison' WHERE entry I
 UPDATE creature_template SET ScriptName='npc_a_special_surprise' WHERE entry IN (29032,29061,29065,29067,29068,29070,29074,29072,29073,29071);
 UPDATE creature_template SET ScriptName='npc_koltira_deathweaver' WHERE entry=28912;
 UPDATE creature_template SET ScriptName='npc_eye_of_acherus' WHERE entry=28511;
+DELETE FROM world_template WHERE map=609;
+INSERT INTO world_template VALUES
+(609, 'world_map_ebon_hold');
 
 /* ELWYNN FOREST */
 UPDATE creature_template SET ScriptName='npc_henze_faulk' WHERE entry=6172;

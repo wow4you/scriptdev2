@@ -313,6 +313,7 @@
     <ClCompile Include="..\scripts\eastern_kingdoms\molten_core\instance_molten_core.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\molten_core\molten_core.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\scarlet_enclave\ebon_hold.cpp" />
+    <ClCompile Include="..\scripts\eastern_kingdoms\scarlet_enclave\world_map_ebon_hold.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\scarlet_monastery\boss_arcanist_doan.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\scarlet_monastery\boss_azshir_the_sleepless.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\scarlet_monastery\boss_bloodmage_thalnos.cpp" />
