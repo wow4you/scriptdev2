@@ -1381,7 +1381,6 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
     uint32 m_uiEventStep;
     uint32 m_uiEventTimer;
     uint32 m_uiFightTimer;
-    uint32 m_uiAttackTimer;
 
     uint8 m_uiLightWarriorsDead;
     uint8 m_uiScourgeWarriorsDead;
@@ -1398,8 +1397,8 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
     uint32 m_uiTargetcheck;
 
     // others
-    GUIDList lDefendersGUIDs;       // light of dawn defenders
-    GUIDList lAttackersGUIDs;       // scourge attackers
+    GUIDList m_lDefendersGUIDs;       // light of dawn defenders
+    GUIDList m_lAttackersGUIDs;       // scourge attackers
 
     void Reset()
     {
@@ -1412,7 +1411,6 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
             m_uiEventStep           = 0;
             m_uiEventTimer          = 3000;
             m_uiFightTimer          = 0;
-            m_uiAttackTimer         = 1000;     // timer to change threat
 
             m_uiLightWarriorsDead   = 0;
             m_uiScourgeWarriorsDead = 0;
@@ -1439,7 +1437,8 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
         {
             case NPC_VOLATILE_GHOUL:
             case NPC_WARRIOR_OF_THE_FROZEN_WASTES:
-                lAttackersGUIDs.push_back(pSummoned->GetObjectGuid());
+                m_lAttackersGUIDs.push_back(pSummoned->GetObjectGuid());
+                // make the scourge attack only during the battle
                 if (m_creature->isInCombat())
                 {
                     if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
@@ -1447,8 +1446,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 }
                 break;
             case NPC_DEFENDER_OF_THE_LIGHT:
-                lDefendersGUIDs.push_back(pSummoned->GetObjectGuid());
-                pSummoned->AI()->AttackStart(m_creature);
+                m_lDefendersGUIDs.push_back(pSummoned->GetObjectGuid());
                 break;
         }
 
@@ -1458,54 +1456,53 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
 
     void SummonedCreatureJustDied(Creature* pSummoned)
     {
+        // if battle has ended return
+        if (m_pInstance->GetData(TYPE_BATTLE) != IN_PROGRESS)
+            return;
+
         // should we count the 2 behemots and 5 abominations as well?
         switch(pSummoned->GetEntry())
         {
             case NPC_VOLATILE_GHOUL:
             case NPC_WARRIOR_OF_THE_FROZEN_WASTES:
                 ++m_uiScourgeWarriorsDead;
-                lAttackersGUIDs.remove(pSummoned->GetObjectGuid());
+                m_lAttackersGUIDs.remove(pSummoned->GetObjectGuid());
+
+                if (m_pInstance)
+                    m_pInstance->DoUpdateBattleWorldState(WORLD_STATE_FORCES_SCOURGE, MAX_FORCES_SCOURGE - m_uiScourgeWarriorsDead);
+
+                // if 5 soldiers are dead summon others
+                if (m_uiScourgeWarriorsDead % MAX_WARRIORS_SUMMONED_PER_TURN == 0)
+                {
+                    DoCastSpellIfCan(m_creature, SPELL_BIRTH);
+
+                    float fX, fY, fZ;
+                    for (uint8 i = 0; i < MAX_WARRIORS_SUMMONED_PER_TURN; i++)
+                    {
+                        uint32 uiSummonEntry = urand(0, 1) ? NPC_VOLATILE_GHOUL : NPC_WARRIOR_OF_THE_FROZEN_WASTES;
+                        m_creature->GetRandomPoint(aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ, 30.0f, fX, fY, fZ);
+                        m_creature->SummonCreature(uiSummonEntry, fX, fY, fZ, 0.0f, TEMPSUMMON_CORPSE_DESPAWN, 5000);
+                    }
+                }
                 break;
             case NPC_DEFENDER_OF_THE_LIGHT:
                 ++m_uiLightWarriorsDead;
-                lDefendersGUIDs.remove(pSummoned->GetObjectGuid());
+                m_lDefendersGUIDs.remove(pSummoned->GetObjectGuid());
+
+                if (m_pInstance)
+                    m_pInstance->DoUpdateBattleWorldState(WORLD_STATE_FORCES_LIGHT, MAX_FORCES_LIGHT - m_uiLightWarriorsDead);
+
+                // if 5 light soldiers are dead summon others
+                if (m_uiLightWarriorsDead % MAX_WARRIORS_SUMMONED_PER_TURN == 0)
+                {
+                    float fX, fY, fZ;
+                    for (uint8 i = 0; i < MAX_WARRIORS_SUMMONED_PER_TURN; i++)
+                    {
+                        m_creature->GetRandomPoint(aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ, 30.0f, fX, fY, fZ);
+                        m_creature->SummonCreature(NPC_DEFENDER_OF_THE_LIGHT, fX, fY, fZ, 0.0f, TEMPSUMMON_CORPSE_DESPAWN, 5000);
+                    }
+                }
                 break;
-        }
-
-        // update the world states
-        if (m_pInstance)
-        {
-            m_pInstance->DoUpdateBattleWorldState(WORLD_STATE_FORCES_SCOURGE, MAX_FORCES_SCOURGE - m_uiScourgeWarriorsDead);
-            m_pInstance->DoUpdateBattleWorldState(WORLD_STATE_FORCES_LIGHT, MAX_FORCES_LIGHT - m_uiLightWarriorsDead);
-        }
-
-        // if battle has ended return
-        if (m_pInstance->GetData(TYPE_BATTLE) != IN_PROGRESS)
-            return;
-
-        // if 5 soldiers are dead summon others
-        if (m_uiScourgeWarriorsDead > 0 && m_uiScourgeWarriorsDead % MAX_SCOURGE == 0)
-        {
-            DoCastSpellIfCan(m_creature, SPELL_BIRTH);
-
-            float fX, fY, fZ;
-            for (uint8 i = 0; i < MAX_SCOURGE; i++)
-            {
-                uint32 uiSummonEntry = urand(0, 1) ? NPC_VOLATILE_GHOUL : NPC_WARRIOR_OF_THE_FROZEN_WASTES;
-                m_creature->GetRandomPoint(aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ, 30.0f, fX, fY, fZ);
-                m_creature->SummonCreature(uiSummonEntry, fX, fY, fZ, 0.0f, TEMPSUMMON_CORPSE_DESPAWN, 5000);
-            }
-        }
-
-        // if 5 light soldiers are dead summon others
-        if (m_uiLightWarriorsDead > 0 && m_uiLightWarriorsDead % MAX_SCOURGE == 0)
-        {
-            float fX, fY, fZ;
-            for (uint8 i = 0; i < MAX_SCOURGE; i++)
-            {
-                m_creature->GetRandomPoint(aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ, 30.0f, fX, fY, fZ);
-                m_creature->SummonCreature(NPC_DEFENDER_OF_THE_LIGHT, fX, fY, fZ, 0.0f, TEMPSUMMON_CORPSE_DESPAWN, 5000);
-            }
         }
     }
 
@@ -1524,50 +1521,23 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 if (Creature* pAlexandros = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_ALEXANDROS_MOGRAINE))
                     DoScriptText(EMOTE_LIGHT_OF_DAWN_HUG, pSummoned, pAlexandros);
                 break;
-            // make the first 2 kneel
-            case NPC_KORFAX_CHAMPION_OF_THE_LIGHT:
-            case NPC_LORD_MAXWELL_TYROSUS:
-                pSummoned->SetStandState(UNIT_STAND_STATE_KNEEL);
-            case NPC_COMMANDER_ELIGOR_DAWNBRINGER:
-            case NPC_LEONID_BARTHALOMEW_THE_REVERED:
-            case NPC_DUKE_NICHOLAS_ZVERENHOFF:
-            case NPC_RIMBLAT_EARTHSHATTER:
-            case NPC_RAYNE:
-                if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
-                    pSummoned->SetFacingToObject(pTirion);
-                break;
-                // tirions stops the battle
             case NPC_HIGHLORD_TIRION_FORDRING:
-                // bring them in front of the chapel
+                // tirions stops the battle and brings the DK in front of the chapel
                 DoScriptText(SAY_LIGHT_OF_DAWN_OUTRO_2, pSummoned);
-                // set battle to done
                 m_pInstance->SetData(TYPE_BATTLE, DONE);
 
                 // scourge fighters die
-                // TODO: proper kill the scourge and FIX CRASH!!!
-                /*for (GUIDList::const_iterator itr = lAttackersGUIDs.begin(); itr != lAttackersGUIDs.end(); ++itr)
+                for (GUIDList::const_iterator itr = m_lAttackersGUIDs.begin(); itr != m_lAttackersGUIDs.end(); ++itr)
                 {
                     if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
-                        pTemp->DealDamage(pTemp, pTemp->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
+                    {
                         pTemp->CastSpell(pTemp, SPELL_THE_LIGHT_OF_DAWN_DAMAGE, true);
-                }*/
-
-                // ##### workaround #####
-                std::list<Creature* > lCreatureList;
-                GetCreatureListWithEntryInGrid(lCreatureList, m_creature, NPC_VOLATILE_GHOUL, 50.0f);
-                for (std::list<Creature*>::const_iterator itr = lCreatureList.begin(); itr != lCreatureList.end(); ++itr)
-                    (*itr)->DealDamage(*itr, (*itr)->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
-                    //(*itr)->CastSpell((*itr), SPELL_THE_LIGHT_OF_DAWN_DAMAGE, true);
-
-                lCreatureList.clear();
-                GetCreatureListWithEntryInGrid(lCreatureList, m_creature, NPC_WARRIOR_OF_THE_FROZEN_WASTES, 50.0f);
-                for (std::list<Creature*>::const_iterator itr = lCreatureList.begin(); itr != lCreatureList.end(); ++itr)
-                    (*itr)->DealDamage(*itr, (*itr)->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
-                    //(*itr)->CastSpell((*itr), SPELL_THE_LIGHT_OF_DAWN_DAMAGE, true);
-                // ##### end of workaround #####
+                        pTemp->DealDamage(pTemp, pTemp->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
+                    }
+                }
 
                 // light fighters despawn
-                for (GUIDList::const_iterator itr = lDefendersGUIDs.begin(); itr != lDefendersGUIDs.end(); ++itr)
+                for (GUIDList::const_iterator itr = m_lDefendersGUIDs.begin(); itr != m_lDefendersGUIDs.end(); ++itr)
                 {
                     if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                         pTemp->ForcedDespawn();
@@ -1581,9 +1551,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 pSummoned->SetFacingTo(aEventLocations[1].m_fO);
 
                 m_creature->Unmount();
-                m_creature->RemoveAllAuras();
-                m_creature->DeleteThreatList();
-                m_creature->CombatStop(true);
+                m_creature->AI()->EnterEvadeMode();
                 m_creature->AddSplineFlag(SPLINEFLAG_WALKMODE);
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
 
@@ -1591,32 +1559,14 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
 
                 // death knights are defeated
                 if (Creature* pKoltira = m_pInstance->GetSingleCreatureFromStorage(NPC_KOLTIRA_DEATHWEAVER))
-                {
-                    pKoltira->AttackStop();
-                    pKoltira->CombatStop(true);
-                    pKoltira->RemoveAllAuras();
-                    pKoltira->DeleteThreatList();
-                    pKoltira->CastStop();
                     pKoltira->AI()->EnterEvadeMode();
-                }
                 if (Creature* pThassarian = m_pInstance->GetSingleCreatureFromStorage(NPC_THASSARIAN))
-                {
-                    pThassarian->AttackStop();
-                    pThassarian->CombatStop(true);
-                    pThassarian->RemoveAllAuras();
-                    pThassarian->DeleteThreatList();
-                    pThassarian->CastStop();
                     pThassarian->AI()->EnterEvadeMode();
-                }
                 // Orbaz flees -> despawn
                 if (Creature* pOrbaz = m_pInstance->GetSingleCreatureFromStorage(NPC_ORBAZ_BLOODBANE))
                 {
                     DoScriptText(EMOTE_LIGHT_OF_DAWN_FLEE, pOrbaz);
-                    pOrbaz->AttackStop();
-                    pOrbaz->CombatStop(true);
-                    pOrbaz->RemoveAllAuras();
-                    pOrbaz->DeleteThreatList();
-                    pOrbaz->GetMotionMaster()->MoveTargetedHome();
+                    pOrbaz->AI()->EnterEvadeMode();
                     pOrbaz->ForcedDespawn(30000);
                 }
 
@@ -1625,24 +1575,20 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 {
                     if (Creature* pTemp = m_pInstance->GetSingleCreatureFromStorage(aLightArmySpawnLoc[i].m_uiEntry))
                     {
+                        // normally it shouldn't happen
                         if (!pTemp->isAlive())
                             pTemp->Respawn();
                         else
                         {
-                            pTemp->AttackStop();
-                            pTemp->CombatStop(true);
-                            pTemp->RemoveAllAuras();
-                            pTemp->DeleteThreatList();
+                            pTemp->AI()->EnterEvadeMode();
                             pTemp->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
                             pTemp->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
-                            // need to set a point instead of TargetedHome because we need to reset orientation
-                            pTemp->GetMotionMaster()->MovePoint(POINT_MOVE_CHAPEL, aLightArmySpawnLoc[i].m_fX, aLightArmySpawnLoc[i].m_fY, aLightArmySpawnLoc[i].m_fZ);
                         }
                     }
                 }
 
                 // clear defenders list
-                lDefendersGUIDs.clear();
+                m_lDefendersGUIDs.clear();
 
                 // spawn soldiers
                 for (uint8 i = 0; i < MAX_LIGHT_GUARDS; i++)
@@ -1651,7 +1597,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                     {
                         // make guard passive and with weapon
                         pGuard->SetFacingToObject(m_creature);
-                        pGuard->HandleEmoteCommand(EMOTE_STATE_ATTACK_UNARMED);            // should be 2 handed when the DB data is correct
+                        pGuard->HandleEmoteCommand(EMOTE_STATE_READY2H);            // should be 2 handed when the DB data is correct
                         pGuard->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
                         pGuard->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
                     }
@@ -1680,11 +1626,11 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
             case 0:
                 // summon light champions
                 for (uint8 i = 0; i < MAX_LIGHT_CHAMPIONS; i++)
-                    m_creature->SummonCreature(aLightArmySpawnLoc[i].m_uiEntry, aLightArmySpawnLoc[i].m_fX, aLightArmySpawnLoc[i].m_fY, aLightArmySpawnLoc[i].m_fZ, aLightArmySpawnLoc[i].m_fO, TEMPSUMMON_DEAD_DESPAWN, 0);
+                    m_creature->SummonCreature(aLightArmySpawnLoc[i].m_uiEntry, aLightArmySpawnLoc[i].m_fX, aLightArmySpawnLoc[i].m_fY, aLightArmySpawnLoc[i].m_fZ, aLightArmySpawnLoc[i].m_fO, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 5*MINUTE*IN_MILLISECONDS);
 
                 // summon light soldiers
                 float fX, fY, fZ;
-                for(uint8 i = 0; i < MAX_LIGHT_WARRIORS; ++i)
+                for(uint8 i = 0; i < 5*MAX_WARRIORS_SUMMONED_PER_TURN; ++i)
                 {
                     m_creature->GetRandomPoint(aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ, 30.0f, fX, fY, fZ);
                     m_creature->SummonCreature(NPC_DEFENDER_OF_THE_LIGHT, fX, fY, fZ, 0.0f, TEMPSUMMON_CORPSE_DESPAWN, 5000);
@@ -1703,16 +1649,28 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
             case 4:
                 // start the battle
                 SetEscortPaused(true);
-                DoCastSpellIfCan(m_creature, SPELL_THE_MIGHT_OF_MOGRAINE);
+                // Note: spell should affect only players
+                //DoCastSpellIfCan(m_creature, SPELL_THE_MIGHT_OF_MOGRAINE);
 
-                // make champs attack him
-                for (uint8 i = 0; i < MAX_LIGHT_CHAMPIONS; i++)
+                // start attacking someone
+                if (Creature* pChamp = m_pInstance->GetSingleCreatureFromStorage(aLightArmySpawnLoc[urand(0, MAX_LIGHT_CHAMPIONS - 1)].m_uiEntry))
+                    m_creature->AI()->AttackStart(pChamp);
+
+                // make army attack
+                for (GUIDList::const_iterator itr = m_lAttackersGUIDs.begin(); itr != m_lAttackersGUIDs.end(); ++itr)
                 {
-                    if (Creature* pChamp = m_pInstance->GetSingleCreatureFromStorage(aLightArmySpawnLoc[i].m_uiEntry))
+                    if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                     {
-                        m_creature->AI()->AttackStart(pChamp);
-                        m_creature->SetInCombatWith(pChamp);
+                        if (Creature* pChamp = m_pInstance->GetSingleCreatureFromStorage(aLightArmySpawnLoc[urand(0, MAX_LIGHT_CHAMPIONS - 1)].m_uiEntry))
+                            m_creature->AI()->AttackStart(pTemp);
                     }
+                }
+
+                // need to make sure that all defenders attack
+                for (GUIDList::const_iterator itr = m_lDefendersGUIDs.begin(); itr != m_lDefendersGUIDs.end(); ++itr)
+                {
+                    if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
+                        pTemp->AI()->AttackStart(m_creature);
                 }
 
                 // max fight timer
@@ -1732,7 +1690,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                     m_creature->SetFacingToObject(pTirion);
 
                 // update guards facing
-                for (GUIDList::const_iterator itr = lDefendersGUIDs.begin(); itr != lDefendersGUIDs.end(); ++itr)
+                for (GUIDList::const_iterator itr = m_lDefendersGUIDs.begin(); itr != m_lDefendersGUIDs.end(); ++itr)
                 {
                     if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                         pTemp->SetFacingToObject(m_creature);
@@ -1743,6 +1701,23 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 SetEscortPaused(true);
                 break;
         }
+    }
+
+    // override evade function to always check for targets while in battle
+    void EnterEvadeMode()
+    {
+        if (!m_pInstance)
+            return;
+
+        // if evade while the battle is in progress start attacking another target
+        if (m_pInstance->GetData(TYPE_BATTLE) == IN_PROGRESS)
+        {
+            // attack random champion
+            if (Creature* pChamp = m_pInstance->GetSingleCreatureFromStorage(aLightArmySpawnLoc[urand(0, MAX_LIGHT_CHAMPIONS - 1)].m_uiEntry))
+                m_creature->AI()->AttackStart(pChamp);
+        }
+        else
+            npc_escortAI::EnterEvadeMode();
     }
 
     void DoSendQuestCredit()
@@ -1757,10 +1732,8 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
         }
     }
 
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateEscortAI(const uint32 uiDiff)
     {
-        npc_escortAI::UpdateAI(uiDiff);
-
         if (m_pInstance->GetData(TYPE_BATTLE) == SPECIAL)
         {
             // intro event and battle timer
@@ -1775,7 +1748,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 ++m_uiIntroYell;
             }
 
-            // battle timer
+            // battle prepare timer
             if (m_uiPrepareTimer < uiDiff)
             {
                 if (m_pInstance)
@@ -1813,22 +1786,22 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             break;
                         case 2:
                             DoScriptText(SAY_LIGHT_OF_DAWN_PREPARE_3, m_creature);
-                            DoScriptText(EMOTE_LIGHT_OF_DAWN_ARMY_RISE, m_creature);
                             m_uiEventTimer = 3000;
                             break;
                         case 3:
+                            DoScriptText(EMOTE_LIGHT_OF_DAWN_ARMY_RISE, m_creature);
                         case 4:
                         case 5:
-                            // summon army takes about 20 secs and it's done on a few stages
+                            // summon army takes about 20 secs and it's done on a few stages; no break between them
                             if (DoCastSpellIfCan(m_creature, SPELL_BIRTH) == CAST_OK)
                             {
                                 float fX, fY, fZ;
-                                for(uint8 i = 0; i < MAX_SCOURGE; ++i)
+                                for(uint8 i = 0; i < MAX_WARRIORS_SUMMONED_PER_TURN; ++i)
                                 {
                                     // Note: missing spawn effect for them!
                                     uint32 uiSummonEntry = urand(0, 1) ? NPC_VOLATILE_GHOUL : NPC_WARRIOR_OF_THE_FROZEN_WASTES;
                                     m_creature->GetRandomPoint(m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), 50.0f, fX, fY, fZ);
-                                    m_creature->SummonCreature(uiSummonEntry, fX, fY, fZ, 0.0f, TEMPSUMMON_CORPSE_DESPAWN, 5000);
+                                    m_creature->SummonCreature(uiSummonEntry, fX, fY, fZ, 0.0f, TEMPSUMMON_CORPSE_DESPAWN, 0);
                                 }
 
                                 m_uiEventTimer = 6000;
@@ -1840,11 +1813,11 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             break;
                         case 7:
                             // send army emote
-                            for(GUIDList::const_iterator itr = lAttackersGUIDs.begin(); itr != lAttackersGUIDs.end(); ++itr)
+                            for(GUIDList::const_iterator itr = m_lAttackersGUIDs.begin(); itr != m_lAttackersGUIDs.end(); ++itr)
                             {
                                 if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                                 {
-                                    pTemp->SetFacingToObject(m_creature);
+                                    //pTemp->SetFacingToObject(m_creature);
                                     pTemp->HandleEmoteCommand(EMOTE_ONESHOT_BATTLEROAR);
                                 }
                             }
@@ -1877,7 +1850,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             }
 
                             // move army
-                            for(GUIDList::const_iterator itr = lAttackersGUIDs.begin(); itr != lAttackersGUIDs.end(); ++itr)
+                            for(GUIDList::const_iterator itr = m_lAttackersGUIDs.begin(); itr != m_lAttackersGUIDs.end(); ++itr)
                             {
                                 if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                                 {
@@ -1886,30 +1859,25 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                                     pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
                                 }
                             }
+                            // move big units
                             m_pInstance->DoMoveArmy();
                             m_uiEventTimer = 0;
                             break;
                         case 9:
                             // after the battle
                             if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
-                            {
                                 DoScriptText(SAY_LIGHT_OF_DAWN_OUTRO_4, pTirion);
-                                m_uiEventTimer = 21000;
-                            }
+                            m_uiEventTimer = 21000;
                             break;
                         case 10:
                             if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
-                            {
                                 DoScriptText(SAY_LIGHT_OF_DAWN_OUTRO_5, pTirion);
-                                m_uiEventTimer = 13000;
-                            }
+                            m_uiEventTimer = 13000;
                             break;
                         case 11:
                             if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
-                            {
                                 DoScriptText(SAY_LIGHT_OF_DAWN_OUTRO_6, pTirion);
-                                m_uiEventTimer = 13000;
-                            }
+                            m_uiEventTimer = 13000;
                             break;
                         case 12:
                             m_creature->SetStandState(UNIT_STAND_STATE_STAND);
@@ -1952,6 +1920,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 3000;
                             break;
                         case 18:
+                            // young darion runs to father
                             if (Creature* pDarion = m_pInstance->GetSingleCreatureFromStorage(NPC_DARION_MOGRAINE))
                             {
                                 pDarion->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
@@ -2004,13 +1973,14 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             break;
                         case 26:
                             // Lich king visit
-                            if (Creature* pLichKing = m_creature->SummonCreature(NPC_THE_LICH_KING, aEventLocations[8].m_fX, aEventLocations[8].m_fY, aEventLocations[8].m_fZ, aEventLocations[8].m_fO, TEMPSUMMON_MANUAL_DESPAWN, 0))
+                            if (Creature* pLichKing = m_creature->SummonCreature(NPC_THE_LICH_KING, aEventLocations[8].m_fX, aEventLocations[8].m_fY, aEventLocations[8].m_fZ, aEventLocations[8].m_fO, TEMPSUMMON_CORPSE_DESPAWN, 5000))
                                 DoScriptText(SAY_LIGHT_OF_DAWN_KING_VISIT_1, pLichKing);
                             if (Creature* pAlexandros = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_ALEXANDROS_MOGRAINE))
                                 DoScriptText(EMOTE_LIGHT_OF_DAWN_LICH_KING, pAlexandros);
                             m_uiEventTimer = 2000;
                             break;
                         case 27:
+                            // the LK feasts on Alexandros
                             if (Creature* pLichKing = m_pInstance->GetSingleCreatureFromStorage(NPC_THE_LICH_KING))
                             {
                                 DoScriptText(SAY_LIGHT_OF_DAWN_KING_VISIT_2, pLichKing);
@@ -2031,6 +2001,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 3000;
                             break;
                         case 30:
+                            // the LK moves forward
                             if (Creature* pLichKing = m_pInstance->GetSingleCreatureFromStorage(NPC_THE_LICH_KING))
                             {
                                 pLichKing->CastSpell(pLichKing, SPELL_ICEBOUND_VISAGE, true);
@@ -2039,10 +2010,12 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 5000;
                             break;
                         case 31:
+                            // darion charges
                             DoCastSpellIfCan(m_creature, SPELL_MOGRAINE_CHARGE);
                             m_uiEventTimer = 3000;
                             break;
                         case 32:
+                            // the LK kicks darion
                             if (Creature* pLichKing = m_pInstance->GetSingleCreatureFromStorage(NPC_THE_LICH_KING))
                             {
                                 DoScriptText(SAY_LIGHT_OF_DAWN_KING_VISIT_4, pLichKing);
@@ -2073,46 +2046,49 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 17000;
                             break;
                         case 36:
+                            // the LK feasts on tirion
                             if (Creature* pLichKing = m_pInstance->GetSingleCreatureFromStorage(NPC_THE_LICH_KING))
                             {
                                 DoScriptText(EMOTE_LIGHT_OF_DAWN_CAST_SPELL, pLichKing);
                                 if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
                                 {
                                     DoScriptText(EMOTE_LIGHT_OF_DAWN_GRASP, pTirion);
-                                    pLichKing->CastSpell(pLichKing, SPELL_SOUL_FEAST_TIRION, true);
+                                    pLichKing->CastSpell(pLichKing, SPELL_SOUL_FEAST_TIRION, false);
                                 }
                             }
                             m_uiEventTimer = 2000;
                             break;
                         case 37:
+                            // the light champions attack the LK
                             if (Creature* pMaxwell = m_pInstance->GetSingleCreatureFromStorage(NPC_LORD_MAXWELL_TYROSUS))
                                 DoScriptText(SAY_LIGHT_OF_DAWN_KING_VISIT_8, pMaxwell);
                             if (Creature* pLichKing = m_pInstance->GetSingleCreatureFromStorage(NPC_THE_LICH_KING))
                             {
-                                /*for (GUIDList::const_iterator itr = lDefendersGUIDs.begin(); itr != lDefendersGUIDs.end(); ++itr)
+                                for (GUIDList::const_iterator itr = m_lDefendersGUIDs.begin(); itr != m_lDefendersGUIDs.end(); ++itr)
                                 {
                                     if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                                     {
                                         pTemp->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
-                                        pTemp->RemoveSplineflag(SPLINEFLAG_WALKMODE);
-                                        pTemp->AI()->AttackStart(pLichKing);
-                                        pTemp->GetMotionMaster()->MovePoint(POINT_MOVE_OTHER, aEventLocations[13].m_fX, aEventLocations[13].m_fY, aEventLocations[13].m_fZ
+                                        pTemp->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
+                                        // attack interrupts LK spell casting
+                                        //pTemp->AI()->AttackStart(pLichKing);
                                     }
-                                }*/
+                                }
                                 for (uint8 i = 0; i < MAX_LIGHT_CHAMPIONS; i++)
                                 {
                                     if (Creature* pTemp = m_pInstance->GetSingleCreatureFromStorage(aLightArmySpawnLoc[i].m_uiEntry))
                                     {
                                         pTemp->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
                                         pTemp->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
-                                        pTemp->AI()->AttackStart(pLichKing);
-                                        pTemp->GetMotionMaster()->MovePoint(POINT_MOVE_OTHER, aEventLocations[13].m_fX, aEventLocations[13].m_fY, aEventLocations[13].m_fZ);
+                                        // attack interrupts LK spell casting
+                                        //pTemp->AI()->AttackStart(pLichKing);
                                     }
                                 }
                             }
                             m_uiEventTimer = 6000;
                             break;
                         case 38:
+                            // the LK throws away all the attackers
                             if (Creature* pLichKing = m_pInstance->GetSingleCreatureFromStorage(NPC_THE_LICH_KING))
                             {
                                 DoScriptText(EMOTE_LIGHT_OF_DAWN_POWERFULL, pLichKing);
@@ -2120,11 +2096,12 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                                 pLichKing->CastSpell(pLichKing, SPELL_APOCALYPSE, true);
                             }
                             // despawn guards
-                            /*for (GUIDList::const_iterator itr = lDefendersGUIDs.begin(); itr != lDefendersGUIDs.end(); ++itr)
+                            for (GUIDList::const_iterator itr = m_lDefendersGUIDs.begin(); itr != m_lDefendersGUIDs.end(); ++itr)
                             {
                                 if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                                     pTemp->DealDamage(pTemp, pTemp->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
-                            }*/
+                            }
+                            // workaround for the light champions
                             for (uint8 i = 0; i < MAX_LIGHT_CHAMPIONS; i++)
                             {
                                 if (Creature* pTemp = m_pInstance->GetSingleCreatureFromStorage(aLightArmySpawnLoc[i].m_uiEntry))
@@ -2140,6 +2117,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 5000;
                             break;
                         case 39:
+                            // make champions stand
                             for (uint8 i = 0; i < MAX_LIGHT_CHAMPIONS; i++)
                             {
                                 if (Creature* pTemp = m_pInstance->GetSingleCreatureFromStorage(aLightArmySpawnLoc[i].m_uiEntry))
@@ -2152,6 +2130,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 5000;
                             break;
                         case 41:
+                            // darion throws the ashbringer to tirion
                             DoScriptText(SAY_LIGHT_OF_DAWN_KING_VISIT_11, m_creature);
                             m_creature->SetStandState(UNIT_STAND_STATE_STAND);
                             m_uiEventTimer = 1000;
@@ -2162,19 +2141,18 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 5000;
                             break;
                         case 43:
+                            // darion colapses while tirion is engulfed in light
                             DoScriptText(EMOTE_LIGHT_OF_DAWN_COLAPSE, m_creature);
                             m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
                             if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
                                 pTirion->CastSpell(pTirion, SPELL_REBIRTH_OF_THE_ASHBRINGER, true);
                             m_pInstance->DoRespawnGameObject(GO_LIGHT_OF_DAWN, 5*MINUTE);
                             if (Creature* pLichKing = m_pInstance->GetSingleCreatureFromStorage(NPC_THE_LICH_KING))
-                            {
-                                pLichKing->CastStop(SPELL_ICEBOUND_VISAGE);
-                                pLichKing->RemoveAllAuras();
-                            }
+                                pLichKing->InterruptNonMeleeSpells(false);
                             m_uiEventTimer = 2000;
                             break;
                         case 44:
+                            // rebirth of the ashbringer
                             if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
                             {
                                 if (pTirion->HasAura(SPELL_REBIRTH_OF_THE_ASHBRINGER))
@@ -2199,6 +2177,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 1000;
                             break;
                         case 48:
+                            // tirion charges to the LK
                             if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
                             {
                                 DoScriptText(EMOTE_LIGHT_OF_DAWN_CHARGE, pTirion);
@@ -2207,13 +2186,16 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 2000;
                             break;
                         case 49:
+                            // move the LK back in front of tirion;
                             if (Creature* pLichKing = m_pInstance->GetSingleCreatureFromStorage(NPC_THE_LICH_KING))
                             {
                                 DoScriptText(SAY_LIGHT_OF_DAWN_KING_VISIT_15, pLichKing);
-                                // make not attack
-                                pLichKing->CombatStop();
+                                pLichKing->GetMotionMaster()->MovePoint(POINT_MOVE_CHAPEL, aEventLocations[8].m_fX, aEventLocations[8].m_fY, aEventLocations[8].m_fZ);
+                                // make him not aggressive
                                 pLichKing->DeleteThreatList();
                             }
+                            if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
+                                pTirion->DeleteThreatList();
                             m_uiEventTimer = 1000;
                             break;
                         case 50:
@@ -2232,6 +2214,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 10000;
                             break;
                         case 53:
+                            // the lich king teleports to leave
                             if (Creature* pLichKing = m_pInstance->GetSingleCreatureFromStorage(NPC_THE_LICH_KING))
                                 pLichKing->CastSpell(pLichKing, SPELL_TELEPORT_VISUAL, false);
                             if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
@@ -2242,6 +2225,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 2000;
                             break;
                         case 54:
+                            // the lich king leaves
                             if (Creature* pLichKing = m_pInstance->GetSingleCreatureFromStorage(NPC_THE_LICH_KING))
                             {
                                 DoScriptText(EMOTE_LIGHT_OF_DAWN_KING_LEAVE, pLichKing);
@@ -2250,6 +2234,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 7000;
                             break;
                         case 55:
+                            // tirion reaches darion and starts the epilogue
                             if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
                             {
                                 pTirion->CastSpell(m_creature, SPELL_LAY_ON_HANDS, true);
@@ -2259,6 +2244,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 3000;
                             break;
                         case 56:
+                            // tirion moves near the light of dawn object
                             if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
                             {
                                 pTirion->AddSplineFlag(SPLINEFLAG_WALKMODE);
@@ -2314,7 +2300,10 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             // send credit then in 5 min despawn
                             DoSendQuestCredit();
                             m_creature->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
-                            m_creature->ForcedDespawn(5*MINUTE*IN_MILLISECONDS);
+                            m_uiEventTimer = 5*MINUTE*IN_MILLISECONDS;
+                            break;
+                        case 66:
+                            m_creature->Respawn();
                             m_uiEventTimer = 0;
                             break;
                     }
@@ -2328,12 +2317,14 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
             // Handle battle events
             if (m_uiFightTimer)
             {
+                // on blizz the battle takes about 4 min, time in which about 100 light warriors die
                 if (m_uiFightTimer <= uiDiff || m_uiLightWarriorsDead >= 100)
                 {
                     // summon Tirion and move him to the chapel
-                    if (Creature* pTirion = m_creature->SummonCreature(NPC_HIGHLORD_TIRION_FORDRING, aEventLocations[0].m_fX, aEventLocations[0].m_fY, aEventLocations[0].m_fZ, aEventLocations[0].m_fO, TEMPSUMMON_MANUAL_DESPAWN, 0))
+                    if (Creature* pTirion = m_creature->SummonCreature(NPC_HIGHLORD_TIRION_FORDRING, aEventLocations[0].m_fX, aEventLocations[0].m_fY, aEventLocations[0].m_fZ, aEventLocations[0].m_fO, TEMPSUMMON_CORPSE_DESPAWN, 5000))
                     {
-                        pTirion->CastSpell(pTirion, SPELL_THE_LIGHT_OF_DAWN_AURA, true);
+                        // this spell should be triggered by some npc
+                        //pTirion->CastSpell(pTirion, SPELL_THE_LIGHT_OF_DAWN_AURA, true);
                         DoScriptText(SAY_LIGHT_OF_DAWN_OUTRO_1, pTirion);
                         DoScriptText(EMOTE_LIGHT_OF_DAWN_TIRION, pTirion);
                         pTirion->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
@@ -2344,63 +2335,8 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 else
                     m_uiFightTimer -= uiDiff;
 
-                 // we need to make sure the npcs
-                if (m_uiAttackTimer < uiDiff)
-                {
-                    if (m_pInstance)
-                        m_pInstance->DoChangeArmyTargets();
-
-                    if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
-                    {
-                        m_creature->AI()->AttackStart(pTarget);
-                        m_creature->SetInCombatWith(pTarget);
-                        pTarget->SetInCombatWith(m_creature);
-                    }
-
-                    if (Creature* pKoltira = m_pInstance->GetSingleCreatureFromStorage(NPC_KOLTIRA_DEATHWEAVER))
-                    {
-                        if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
-                        {
-                            pKoltira->AI()->AttackStart(pTarget);
-                            pKoltira->SetInCombatWith(pTarget);
-                            pTarget->SetInCombatWith(pKoltira);
-                        }
-                    }
-                    if (Creature* pThassarian = m_pInstance->GetSingleCreatureFromStorage(NPC_THASSARIAN))
-                    {
-                        if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
-                        {
-                            pThassarian->AI()->AttackStart(pTarget);
-                            pThassarian->SetInCombatWith(pTarget);
-                            pTarget->SetInCombatWith(pThassarian);
-                        }
-                    }
-                    if (Creature* pOrbaz = m_pInstance->GetSingleCreatureFromStorage(NPC_ORBAZ_BLOODBANE))
-                    {
-                        if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
-                        {
-                            pOrbaz->AI()->AttackStart(pTarget);
-                            pOrbaz->SetInCombatWith(pTarget);
-                            pTarget->SetInCombatWith(pOrbaz);
-                        }
-                    }
-
-                    for(GUIDList::const_iterator itr = lAttackersGUIDs.begin(); itr != lAttackersGUIDs.end(); ++itr)
-                    {
-                        if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
-                        {
-                            if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
-                            {
-                                pTemp->AI()->AttackStart(pTarget);
-                                pTemp->SetInCombatWith(pTarget);
-                                pTarget->SetInCombatWith(pTemp);
-                            }
-                        }
-                    }
-                    m_uiAttackTimer = 5000;
-                }
-                else
-                    m_uiAttackTimer -= uiDiff;
+                if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+                    return;
 
                 // battle sounds
                 if (m_uiFightSpeechTimer < uiDiff)
@@ -2428,9 +2364,6 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 }
                 else
                     m_uiFightSpeechTimer -= uiDiff;
-
-                if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
-                    return;
 
                 // make sure that darion always stays in the area
                 if (!m_creature->IsWithinDist2d(aEventLocations[1].m_fX, aEventLocations[1].m_fY, 50.0f))
@@ -2562,6 +2495,9 @@ struct MANGOS_DLL_DECL npc_fellow_death_knightAI : public ScriptedAI
 
     void EnterEvadeMode()
     {
+        if (!m_creature->isAlive())
+            return;
+
         if (!m_pInstance)
             return;
 
@@ -2576,6 +2512,14 @@ struct MANGOS_DLL_DECL npc_fellow_death_knightAI : public ScriptedAI
         }
         else
         {
+            m_creature->RemoveAllAuras();
+            m_creature->DeleteThreatList();
+            m_creature->CombatStop(true);
+            m_creature->LoadCreatureAddon();
+            m_creature->SetLootRecipient(NULL);
+
+            Reset();
+
             if (m_creature->GetEntry() != NPC_ORBAZ_BLOODBANE)
             {
                 // cast light of dawn
@@ -2592,6 +2536,9 @@ struct MANGOS_DLL_DECL npc_fellow_death_knightAI : public ScriptedAI
                     break;
                 case NPC_KOLTIRA_DEATHWEAVER:
                     m_creature->GetMotionMaster()->MovePoint(POINT_MOVE_CHAPEL, aEventLocations[2].m_fX, aEventLocations[2].m_fY, aEventLocations[2].m_fZ);
+                    break;
+                case NPC_ORBAZ_BLOODBANE:
+                    m_creature->GetMotionMaster()->MoveTargetedHome();
                     break;
             }
         }

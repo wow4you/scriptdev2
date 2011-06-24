@@ -61,7 +61,7 @@ void world_map_ebon_hold::OnCreatureCreate(Creature* pCreature)
         // Behemots and abominations are spawned by default on the map so they need to be handled here
         case NPC_FLESH_BEHEMOTH:
         case NPC_RAMPAGING_ABOMINATION:
-            lArmyGuids.push_back(pCreature->GetObjectGuid());
+            m_lArmyGuids.push_back(pCreature->GetObjectGuid());
             break;
     }
 }
@@ -76,9 +76,48 @@ void world_map_ebon_hold::OnCreatureDeath(Creature* pCreature)
         // resummon the behemots or abominations if they die
         case NPC_FLESH_BEHEMOTH:
         case NPC_RAMPAGING_ABOMINATION:
-            //lArmyGuids.remove(pCreature->GetObjectGuid());
-            pCreature->SummonCreature(pCreature->GetEntry(), pCreature->GetPositionX(), pCreature->GetPositionY(), pCreature->GetPositionZ(), pCreature->GetOrientation(), TEMPSUMMON_CORPSE_DESPAWN, 0);
-            pCreature->ForcedDespawn();
+            m_lArmyGuids.remove(pCreature->GetObjectGuid());
+            if (Creature* pTemp = pCreature->SummonCreature(pCreature->GetEntry(), pCreature->GetPositionX(), pCreature->GetPositionY(), pCreature->GetPositionZ(), pCreature->GetOrientation(), TEMPSUMMON_CORPSE_DESPAWN, 0))
+            {
+                // the new summoned mob should attack
+                if (Creature* pDarion = GetSingleCreatureFromStorage(NPC_HIGHLORD_DARION_MOGRAINE))
+                    pTemp->AI()->AttackStart(pDarion);
+            }
+            pCreature->ForcedDespawn(1000);
+            break;
+    }
+}
+
+void world_map_ebon_hold::OnCreatureEvade(Creature* pCreature)
+{
+    if (GetData(TYPE_BATTLE) != IN_PROGRESS)
+        return;
+
+    switch(pCreature->GetEntry())
+    {
+        // don't let the scourge evade while the battle is running
+        case NPC_FLESH_BEHEMOTH:
+        case NPC_RAMPAGING_ABOMINATION:
+        case NPC_VOLATILE_GHOUL:
+        case NPC_WARRIOR_OF_THE_FROZEN_WASTES:
+            if (Creature* pDarion = GetSingleCreatureFromStorage(NPC_HIGHLORD_DARION_MOGRAINE))
+            {
+                if (!pDarion->isInCombat())
+                    return;
+
+                if (Unit* pTarget = pDarion->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+                    pCreature->AI()->AttackStart(pTarget);
+            }
+        case NPC_KORFAX_CHAMPION_OF_THE_LIGHT:
+        case NPC_LORD_MAXWELL_TYROSUS:
+        case NPC_COMMANDER_ELIGOR_DAWNBRINGER:
+        case NPC_LEONID_BARTHALOMEW_THE_REVERED:
+        case NPC_DUKE_NICHOLAS_ZVERENHOFF:
+        case NPC_RIMBLAT_EARTHSHATTER:
+        case NPC_RAYNE:
+        case NPC_DEFENDER_OF_THE_LIGHT:
+            if (Creature* pDarion = GetSingleCreatureFromStorage(NPC_HIGHLORD_DARION_MOGRAINE))
+                pCreature->AI()->AttackStart(pDarion);
             break;
     }
 }
@@ -104,7 +143,7 @@ void world_map_ebon_hold::SetData(uint32 uiType, uint32 uiData)
                 DoUpdateBattleWorldState(WORLD_STATE_BATTLE_TIMER_SHOW, 0);
                 DoUpdateBattleWorldState(WORLD_STATE_BATTLE_BEGIN, 0);
 
-                ResetBattle();
+                DoResetBattle();
                 break;
             case SPECIAL:
                 // display timer
@@ -152,7 +191,7 @@ void world_map_ebon_hold::DoUpdateBattleWorldState(uint32 uiStateId, uint32 uiSt
     }
 }
 
-void world_map_ebon_hold::ResetBattle()
+void world_map_ebon_hold::DoResetBattle()
 {
     // reset all npcs to the original state
     if (Creature* pKoltira = GetSingleCreatureFromStorage(NPC_KOLTIRA_DEATHWEAVER))
@@ -163,7 +202,7 @@ void world_map_ebon_hold::ResetBattle()
         pOrbaz->Respawn();
 
     // respawn all abominations
-    for (GUIDList::const_iterator itr = lArmyGuids.begin(); itr != lArmyGuids.end(); ++itr)
+    for (GUIDList::const_iterator itr = m_lArmyGuids.begin(); itr != m_lArmyGuids.end(); ++itr)
     {
         if (Creature* pTemp = instance->GetCreature(*itr))
             pTemp->Respawn();
@@ -184,7 +223,7 @@ void world_map_ebon_hold::DoMoveArmy()
 {
     // move all the army to the chapel
     float fX, fY, fZ;
-    for (GUIDList::const_iterator itr = lArmyGuids.begin(); itr != lArmyGuids.end(); ++itr)
+    for (GUIDList::const_iterator itr = m_lArmyGuids.begin(); itr != m_lArmyGuids.end(); ++itr)
     {
         if (Creature* pTemp = instance->GetCreature(*itr))
         {
@@ -195,40 +234,17 @@ void world_map_ebon_hold::DoMoveArmy()
     }
 }
 
-void world_map_ebon_hold::DoChangeArmyTargets()
-{
-    if (Creature* pDarion = GetSingleCreatureFromStorage(NPC_HIGHLORD_DARION_MOGRAINE))
-    {
-        if (!pDarion->isInCombat())
-            return;
-
-        // change targets for the army
-        for (GUIDList::const_iterator itr = lArmyGuids.begin(); itr != lArmyGuids.end(); ++itr)
-        {
-            if (Creature* pTemp = instance->GetCreature(*itr))
-            {
-                if (Unit* pTarget = pDarion->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
-                {
-                    pTemp->AI()->AttackStart(pTarget);
-                    pTemp->SetInCombatWith(pTarget);
-                    pTarget->SetInCombatWith(pTemp);
-                }
-            }
-        }
-    }
-}
-
 void world_map_ebon_hold::DoDespawnArmy()
 {
-    for (GUIDList::const_iterator itr = lArmyGuids.begin(); itr != lArmyGuids.end(); ++itr)
+    // despawn all army units when the battle is finished
+    for (GUIDList::const_iterator itr = m_lArmyGuids.begin(); itr != m_lArmyGuids.end(); ++itr)
     {
         if (Creature* pTemp = instance->GetCreature(*itr))
         {
             if (pTemp->isAlive())
             {
-                //pTemp->CastSpell(pTemp, SPELL_THE_LIGHT_OF_DAWN_DAMAGE, true);
+                pTemp->CastSpell(pTemp, SPELL_THE_LIGHT_OF_DAWN_DAMAGE, true);
                 pTemp->DealDamage(pTemp, pTemp->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
-                pTemp->ForcedDespawn();
             }
         }
     }

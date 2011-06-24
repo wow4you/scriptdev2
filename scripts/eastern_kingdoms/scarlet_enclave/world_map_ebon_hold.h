@@ -9,7 +9,6 @@ enum
 {
     TYPE_BATTLE                         = 0,
 
-    PHASE_MASK_BATTLE                   = 128,      // phase mask used to update the world state for players
     // npcs
     // death knights
     NPC_HIGHLORD_DARION_MOGRAINE        = 29173,
@@ -50,8 +49,7 @@ enum
 
     // variables
     MAX_LIGHT_CHAMPIONS                 = 7,    // the number of the light champions
-    MAX_LIGHT_WARRIORS                  = 15,   // the number of light soldiers
-    MAX_SCOURGE                         = 5,    // the number of summoned scourge minions per turn; total = 15
+    MAX_WARRIORS_SUMMONED_PER_TURN      = 5,    // summoned warriors (light and death) per turn
     MAX_LIGHT_GUARDS                    = 4,    // guards summond for the outro
 
     // event variables
@@ -128,6 +126,7 @@ class MANGOS_DLL_DECL world_map_ebon_hold : public ScriptedInstance
 
         void OnCreatureCreate(Creature* pCreature);
         void OnCreatureDeath(Creature* pCreature);
+        void OnCreatureEvade(Creature* pCreature);
         void OnObjectCreate(GameObject* pGo);
 
         void SetData(uint32 uiType, uint32 uiData);
@@ -137,15 +136,14 @@ class MANGOS_DLL_DECL world_map_ebon_hold : public ScriptedInstance
 
         // Move the behemots and abominations and make them attack
         void DoMoveArmy();
-        void DoChangeArmyTargets();
         void DoDespawnArmy();
 
     protected:
-        void ResetBattle();
+        void DoResetBattle();
 
         uint32 m_uiBattleEncounter;
 
-        GUIDList lArmyGuids;
+        GUIDList m_lArmyGuids;
 };
 
 #endif
