@@ -75,17 +75,18 @@ struct MANGOS_DLL_DECL boss_telestraAI : public ScriptedAI
 {
     boss_telestraAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
+        m_pInstance = (instance_nexus*)pCreature->GetInstanceData();
         m_bIsRegularMode = pCreature->GetMap()->IsRegularDifficulty();
         Reset();
     }
 
-    ScriptedInstance* m_pInstance;
+    instance_nexus* m_pInstance;
     bool m_bIsRegularMode;
 
     uint8 m_uiPhase;
     uint8 m_uiCloneDeadCount;
 
+    uint32 m_uiPersonalityCheckTimer;
     uint32 m_uiFirebombTimer;
     uint32 m_uiIceNovaTimer;
     uint32 m_uiGravityWellTimer;
@@ -95,6 +96,7 @@ struct MANGOS_DLL_DECL boss_telestraAI : public ScriptedAI
         m_uiPhase = PHASE_1;
         m_uiCloneDeadCount = 0;
 
+        m_uiPersonalityCheckTimer = 0;
         m_uiFirebombTimer = urand(2000, 4000);
         m_uiIceNovaTimer = urand(8000, 12000);
         m_uiGravityWellTimer = urand(15000, 25000);
@@ -147,6 +149,10 @@ struct MANGOS_DLL_DECL boss_telestraAI : public ScriptedAI
             {
                 ++m_uiCloneDeadCount;
 
+                // if the first clone from each split phase is dead then start the achiev timer
+                if (m_uiCloneDeadCount == 1 || m_uiCloneDeadCount == 4)
+                    m_uiPersonalityCheckTimer = 5000;
+
                 if (m_uiCloneDeadCount == 3 || m_uiCloneDeadCount == 6)
                 {
                     m_creature->RemoveAurasDueToSpell(SPELL_SUMMON_CLONES);
@@ -156,12 +162,17 @@ struct MANGOS_DLL_DECL boss_telestraAI : public ScriptedAI
 
                     DoScriptText(SAY_MERGE, m_creature);
 
+                    // stop checking the achiev
+                    m_uiPersonalityCheckTimer = 0;
+
                     m_uiPhase = m_uiCloneDeadCount == 3 ? PHASE_3 : PHASE_4;
                 }
                 break;
             }
             case SPELL_SUMMON_CLONES:
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                if (m_pInstance)
+                    m_pInstance->SetSpecialAchievementCriteria(TYPE_ACHIEV_SPLIT_PERSONALITY, true);
                 break;
         }
     }
@@ -180,6 +191,20 @@ struct MANGOS_DLL_DECL boss_telestraAI : public ScriptedAI
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
+
+        if (m_uiPersonalityCheckTimer)
+        {
+            if (m_uiPersonalityCheckTimer <= uiDiff)
+            {
+                // if the boss is still in phase 2 (clones aren't yet dead) -> set achiev to false
+                if (m_uiPhase == PHASE_2 && m_pInstance)
+                    m_pInstance->SetSpecialAchievementCriteria(TYPE_ACHIEV_SPLIT_PERSONALITY, false);
+
+                m_uiPersonalityCheckTimer = 0;
+            }
+            else
+                m_uiPersonalityCheckTimer -= uiDiff;
+        }
 
         switch(m_uiPhase)
         {
@@ -251,10 +276,10 @@ CreatureAI* GetAI_boss_telestra(Creature* pCreature)
 
 void AddSC_boss_telestra()
 {
-    Script *newscript;
+    Script* pNewScript;
 
-    newscript = new Script;
-    newscript->Name = "boss_telestra";
-    newscript->GetAI = &GetAI_boss_telestra;
-    newscript->RegisterSelf();
+    pNewScript = new Script;
+    pNewScript->Name = "boss_telestra";
+    pNewScript->GetAI = &GetAI_boss_telestra;
+    pNewScript->RegisterSelf();
 }

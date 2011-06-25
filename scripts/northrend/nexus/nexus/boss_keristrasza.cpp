@@ -32,7 +32,10 @@ enum
     SAY_KILL                    = -1576019,
     SAY_DEATH                   = -1576020,
 
+    MAX_INTENSE_COLD_STACK      = 2,            // the max allowed stacks for the achiev to pass
+
     SPELL_INTENSE_COLD          = 48094,
+    SPELL_INTENSE_COLD_TRIGG    = 48095,        // used for Intense cold achiev
 
     SPELL_CRYSTALFIRE_BREATH    = 48096,
     SPELL_CRYSTALFIRE_BREATH_H  = 57091,
@@ -66,6 +69,7 @@ struct MANGOS_DLL_DECL boss_keristraszaAI : public ScriptedAI
     uint32 uiTailSweepTimer;
     uint32 uiCrystalfireBreathTimer;
     uint32 uiCrystallizeTimer;
+    uint32 uiCheckIntenseColdTimer;
 
     bool m_bIsEnraged;
 
@@ -75,6 +79,7 @@ struct MANGOS_DLL_DECL boss_keristraszaAI : public ScriptedAI
         uiTailSweepTimer = urand(5000, 7500);
         uiCrystalfireBreathTimer = urand(10000, 20000);
         uiCrystallizeTimer = urand(20000, 30000);
+        uiCheckIntenseColdTimer = 2000;
 
         m_bIsEnraged = false;
 
@@ -95,6 +100,12 @@ struct MANGOS_DLL_DECL boss_keristraszaAI : public ScriptedAI
         m_creature->CastSpell(m_creature, SPELL_INTENSE_COLD, true);
     }
 
+    void JustReachedHome()
+    {
+        if (m_pInstance)
+            m_pInstance->SetData(TYPE_KERISTRASZA, FAIL);
+    }
+
     void JustDied(Unit* pKiller)
     {
         DoScriptText(SAY_DEATH, m_creature);
@@ -113,6 +124,27 @@ struct MANGOS_DLL_DECL boss_keristraszaAI : public ScriptedAI
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
+
+        if (uiCheckIntenseColdTimer < uiDiff)
+        {
+            std::list<HostileReference*> ThreatList = m_creature->getThreatManager().getThreatList();
+            for (std::list<HostileReference*>::const_iterator itr = ThreatList.begin(); itr != ThreatList.end(); ++itr)
+            {
+                if (Player* pTarget = m_creature->GetMap()->GetPlayer((*itr)->getUnitGuid()))
+                {
+                    Aura *AuraIntenseCold = pTarget->GetAura(SPELL_INTENSE_COLD_TRIGG, EFFECT_INDEX_0);
+
+                    if (AuraIntenseCold && AuraIntenseCold->GetStackAmount() > MAX_INTENSE_COLD_STACK)
+                    {
+                        if (m_pInstance)
+                            m_pInstance->SetData(TYPE_INTENSE_COLD_FAILED, pTarget->GetGUIDLow());
+                    }
+                }
+            }
+            uiCheckIntenseColdTimer = 2000;
+        }
+        else
+            uiCheckIntenseColdTimer -= uiDiff;
 
         if (!m_bIsEnraged && m_creature->GetHealthPercent() < 25.0f)
         {
@@ -210,10 +242,10 @@ CreatureAI* GetAI_boss_keristrasza(Creature* pCreature)
 
 void AddSC_boss_keristrasza()
 {
-    Script *newscript;
+    Script* pNewScript;
 
-    newscript = new Script;
-    newscript->Name = "boss_keristrasza";
-    newscript->GetAI = &GetAI_boss_keristrasza;
-    newscript->RegisterSelf();
+    pNewScript = new Script;
+    pNewScript->Name = "boss_keristrasza";
+    pNewScript->GetAI = &GetAI_boss_keristrasza;
+    pNewScript->RegisterSelf();
 }
