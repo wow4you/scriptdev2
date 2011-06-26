@@ -33,22 +33,25 @@ enum
     SAY_DEATH                   = -1576015,
     EMOTE_BOSS_GENERIC_FRENZY   = -1000005,
 
+    MAX_SPIKES                  = 8,            // the max number of spikes summoned in a row
+    MAX_SPIKES_DISTANCE         = 5,            // distance between the spikes
+
     SPELL_REFLECTION            = 47981,
 
-    SPELL_CRYSTAL_SPIKES        = 47958,
+    SPELL_CRYSTAL_SPIKES        = 47958,        // starts the spikes event
     SPELL_CRYSTAL_SPIKES_H1     = 57082,
     SPELL_CRYSTAL_SPIKES_H2     = 57083,
 
-    SPELL_SPIKE_SUMMON          = 47947,
-    SPELL_SPIKE_VISUAL          = 50442,
+    SPELL_SPIKE_SUMMON          = 47947,        // used by the crystal spike trap go
+    //SPELL_SPIKE_VISUAL          = 50442,      // used by the crystal spike
+    //SPELL_CRYSTAL_SPIKE_PER     = 47941,      // aura which summons all the other spikes
 
-    SPELL_CRYSTAL_SPIKE_PER     = 47941,        // aura which summons all the other spikes
-    SPELL_CRYSTAL_SPIKE_BACK    = 47936,
-    SPELL_CRYSTAL_SPIKE_FRONT1  = 47942,
-    SPELL_CRYSTAL_SPIKE_FRONT2  = 47943,
+    //SPELL_CRYSTAL_SPIKE_BACK    = 47936,      // spells which summon the crystal spike trap go
+    //SPELL_CRYSTAL_SPIKE_FRONT1  = 47942,
+    //SPELL_CRYSTAL_SPIKE_FRONT2  = 47943,
 
-    SPELL_CRYSTAL_SPIKE_DMG     = 47944,
-    SPELL_CRYSTAL_SPIKE_DMG_H   = 57067,
+    //SPELL_CRYSTAL_SPIKE_DMG     = 47944,      // used by the crystal spike
+    //SPELL_CRYSTAL_SPIKE_DMG_H   = 57067,
 
     SPELL_FRENZY                = 48017,
     SPELL_FRENZY_H              = 57086,
@@ -60,9 +63,11 @@ enum
     SPELL_SUMMON_TANGLER_H      = 61564,
 
     NPC_CRYSTALLINE_TANGLER     = 32665,
-    NPC_SPIKE_INITIAL_TRIGGER   = 27101,
-    NPC_SPIKE_TRIGGER           = 27079,
-    NPC_SPIKE                   = 27099
+    NPC_SPIKE_INITIAL_TRIGGER   = 27101,        // summoned around the boss from the initial spell
+    //NPC_SPIKE_TRIGGER           = 27079,      // uses the trap in order to summon the spike
+    NPC_SPIKE                   = 27099,        // this npc is summoned by the crystal spike trap when used by crystal spike trigger - in acid
+
+    //GO_CRYSTAL_SPIKE_TRAP       = 188537
 };
 
 /*######
@@ -127,7 +132,13 @@ struct MANGOS_DLL_DECL boss_ormorokAI : public ScriptedAI
                 pSummoned->AI()->AttackStart(pTarget);
         }
         else if (pSummoned->GetEntry() == NPC_SPIKE_INITIAL_TRIGGER)
-            pSummoned->CastSpell(pSummoned, SPELL_CRYSTAL_SPIKE_PER, true);
+        {
+            // Summon spikes event should be handled by the periodic dummy aura - now it's workaround
+            //pSummoned->CastSpell(pSummoned, SPELL_CRYSTAL_SPIKE_PER, true);
+
+            // summon an initial spike
+            pSummoned->CastSpell(pSummoned, SPELL_SPIKE_SUMMON, true);
+        }
     }
 
     void UpdateAI(const uint32 uiDiff)
@@ -190,6 +201,63 @@ CreatureAI* GetAI_boss_ormorok(Creature* pCreature)
     return new boss_ormorokAI(pCreature);
 }
 
+struct MANGOS_DLL_DECL npc_crystal_spike_initial_triggerAI : public Scripted_NoMovementAI
+{
+    npc_crystal_spike_initial_triggerAI(Creature* pCreature) : Scripted_NoMovementAI(pCreature)
+    {
+        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
+        Reset();
+    }
+
+    ScriptedInstance* m_pInstance;
+
+    uint32 m_uiSpikeSummonTimer;
+    uint8 m_uiSummonCount;
+    uint8 m_uiDistance;
+
+    void Reset()
+    {
+        m_uiSpikeSummonTimer = 250;     // the periodic dummy spell tick
+        m_uiSummonCount = 0;
+        m_uiDistance = MAX_SPIKES_DISTANCE;
+    }
+
+    void UpdateAI(const uint32 uiDiff)
+    {
+        if (m_uiSummonCount < MAX_SPIKES)
+        {
+            // summon the spikes
+            if (m_uiSpikeSummonTimer < uiDiff)
+            {
+                if (m_pInstance)
+                {
+                    if (Creature* pOrmorok = m_pInstance->GetSingleCreatureFromStorage(NPC_ORMOROK))
+                    {
+                        // coordinates == TargetOF(47941).position + TargetOf(47941).GetAngle() * GetTickCount() * DIST_PER_TICK
+
+                        float fAngle = m_creature->GetAngle(pOrmorok);
+                        float fX, fY;
+
+                        m_creature->GetNearPoint2D(fX, fY, m_uiDistance, fAngle);
+                        m_creature->SummonCreature(NPC_SPIKE, fX, fY, m_creature->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN, 5000);
+                    }
+                }
+
+                ++m_uiSummonCount;
+                m_uiDistance += MAX_SPIKES_DISTANCE;
+                m_uiSpikeSummonTimer = 250;
+            }
+            else
+                m_uiSpikeSummonTimer -= uiDiff;
+        }
+    }
+};
+
+CreatureAI* GetAI_npc_crystal_spike_initial_trigger(Creature* pCreature)
+{
+    return new npc_crystal_spike_initial_triggerAI(pCreature);
+}
+
 void AddSC_boss_ormorok()
 {
     Script* pNewScript;
@@ -197,5 +265,10 @@ void AddSC_boss_ormorok()
     pNewScript = new Script;
     pNewScript->Name = "boss_ormorok";
     pNewScript->GetAI = &GetAI_boss_ormorok;
+    pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "npc_crystal_spike_initial_trigger";
+    pNewScript->GetAI = &GetAI_npc_crystal_spike_initial_trigger;
     pNewScript->RegisterSelf();
 }
