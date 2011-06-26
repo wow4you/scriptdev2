@@ -122,6 +122,9 @@ struct MANGOS_DLL_DECL boss_telestraAI : public ScriptedAI
     void Aggro(Unit* pWho)
     {
         DoScriptText(SAY_AGGRO, m_creature);
+
+        if (m_pInstance)
+            m_pInstance->SetData(TYPE_TELESTRA, IN_PROGRESS);
     }
 
     void JustDied(Unit* pKiller)
@@ -171,8 +174,6 @@ struct MANGOS_DLL_DECL boss_telestraAI : public ScriptedAI
             }
             case SPELL_SUMMON_CLONES:
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
-                if (m_pInstance)
-                    m_pInstance->SetSpecialAchievementCriteria(TYPE_ACHIEV_SPLIT_PERSONALITY, true);
                 break;
         }
     }

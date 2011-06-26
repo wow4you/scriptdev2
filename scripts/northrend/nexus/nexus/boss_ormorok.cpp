@@ -39,13 +39,30 @@ enum
     SPELL_CRYSTAL_SPIKES_H1     = 57082,
     SPELL_CRYSTAL_SPIKES_H2     = 57083,
 
+    SPELL_SPIKE_SUMMON          = 47947,
+    SPELL_SPIKE_VISUAL          = 50442,
+
+    SPELL_CRYSTAL_SPIKE_PER     = 47941,        // aura which summons all the other spikes
+    SPELL_CRYSTAL_SPIKE_BACK    = 47936,
+    SPELL_CRYSTAL_SPIKE_FRONT1  = 47942,
+    SPELL_CRYSTAL_SPIKE_FRONT2  = 47943,
+
+    SPELL_CRYSTAL_SPIKE_DMG     = 47944,
+    SPELL_CRYSTAL_SPIKE_DMG_H   = 57067,
+
     SPELL_FRENZY                = 48017,
     SPELL_FRENZY_H              = 57086,
 
     SPELL_TRAMPLE               = 48016,
     SPELL_TRAMPLE_H             = 57066,
 
-    SPELL_SUMMON_TANGLER_H      = 61564
+    SPELL_CRYSTALLINE_TANGLER   = 61555,        // on crystalline tanglers
+    SPELL_SUMMON_TANGLER_H      = 61564,
+
+    NPC_CRYSTALLINE_TANGLER     = 32665,
+    NPC_SPIKE_INITIAL_TRIGGER   = 27101,
+    NPC_SPIKE_TRIGGER           = 27079,
+    NPC_SPIKE                   = 27099
 };
 
 /*######
@@ -102,8 +119,15 @@ struct MANGOS_DLL_DECL boss_ormorokAI : public ScriptedAI
 
     void JustSummoned(Creature* pSummoned)
     {
-        if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 1))
-            pSummoned->AI()->AttackStart(pTarget);
+        if (pSummoned->GetEntry() == NPC_CRYSTALLINE_TANGLER)
+        {
+            pSummoned->CastSpell(pSummoned, SPELL_CRYSTALLINE_TANGLER, true);
+
+            if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 1))
+                pSummoned->AI()->AttackStart(pTarget);
+        }
+        else if (pSummoned->GetEntry() == NPC_SPIKE_INITIAL_TRIGGER)
+            pSummoned->CastSpell(pSummoned, SPELL_CRYSTAL_SPIKE_PER, true);
     }
 
     void UpdateAI(const uint32 uiDiff)
@@ -168,10 +192,10 @@ CreatureAI* GetAI_boss_ormorok(Creature* pCreature)
 
 void AddSC_boss_ormorok()
 {
-    Script *newscript;
+    Script* pNewScript;
 
-    newscript = new Script;
-    newscript->Name = "boss_ormorok";
-    newscript->GetAI = &GetAI_boss_ormorok;
-    newscript->RegisterSelf();
+    pNewScript = new Script;
+    pNewScript->Name = "boss_ormorok";
+    pNewScript->GetAI = &GetAI_boss_ormorok;
+    pNewScript->RegisterSelf();
 }
