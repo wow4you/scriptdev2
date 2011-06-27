@@ -20,3 +20,85 @@ SD%Complete:
 SDComment:
 SDCategory: Oculus
 EndScriptData */
+
+#include "precompiled.h"
+#include "oculus.h"
+
+enum
+{
+    SAY_AGGRO                       = -1578012,
+    SAY_ARCANE_SHIELD               = -1578013,
+    SAY_FIRE_SHIELD                 = -1578014,
+    SAY_NATURE_SHIELD               = -1578015,
+    SAY_FRENZY                      = -1578016,
+    SAY_KILL_1                      = -1578017,
+    SAY_KILL_2                      = -1578018,
+    SAY_KILL_3                      = -1578019,
+    SAY_DEATH                       = -1578020,
+};
+
+struct MANGOS_DLL_DECL boss_eregosAI : public ScriptedAI
+{
+    boss_eregosAI(Creature* pCreature) : ScriptedAI(pCreature)
+    {
+        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
+        m_bIsRegularMode = pCreature->GetMap()->IsRegularDifficulty();
+        Reset();
+    }
+
+    ScriptedInstance* m_pInstance;
+    bool m_bIsRegularMode;
+
+    void Reset()
+    {
+    }
+
+    void Aggro(Unit* pWho)
+    {
+        DoScriptText(SAY_AGGRO, m_creature);
+
+        if (m_pInstance)
+            m_pInstance->SetData(TYPE_EREGOS, IN_PROGRESS);
+    }
+
+    void KilledUnit(Unit* pVictim)
+    {
+    }
+
+    void JustDied(Unit* pKiller)
+    {
+        DoScriptText(SAY_DEATH, m_creature);
+
+        if (m_pInstance)
+            m_pInstance->SetData(TYPE_EREGOS, DONE);
+    }
+
+    void JustReachedHome()
+    {
+        if (m_pInstance)
+            m_pInstance->SetData(TYPE_EREGOS, FAIL);
+    }
+
+    void UpdateAI(const uint32 uiDiff)
+    {
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+            return;
+
+        DoMeleeAttackIfReady();
+    }
+};
+
+CreatureAI* GetAI_boss_eregos(Creature* pCreature)
+{
+    return new boss_eregosAI(pCreature);
+}
+
+void AddSC_boss_eregos()
+{
+    Script* pNewScript;
+
+    pNewScript = new Script;
+    pNewScript->Name = "boss_eregos";
+    pNewScript->GetAI = &GetAI_boss_eregos;
+    pNewScript->RegisterSelf();
+}

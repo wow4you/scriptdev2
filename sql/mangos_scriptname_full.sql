@@ -892,7 +892,15 @@ UPDATE instance_template SET ScriptName='instance_nexus' WHERE map=576;
 UPDATE creature_template SET ScriptName='npc_crystal_spike_initial_trigger' WHERE entry=27101;
 
 /* OCULUS */
-
+UPDATE creature_template SET ScriptName='boss_eregos' WHERE entry=27656;
+UPDATE creature_template SET ScriptName='boss_urom' WHERE entry=27655;
+UPDATE instance_template SET ScriptName='instance_oculus' WHERE map=578;
+DELETE FROM scripted_event_id WHERE id IN (12229, 10665, 18454, 18455);
+INSERT INTO scripted_event_id VALUES
+(12229,'event_call_ring_captain'),
+(10665,'event_call_ring_captain'),
+(18454,'event_call_ring_captain'),
+(18455,'event_call_ring_captain');
 
 /* OBSIDIAN SANCTUM */
 UPDATE instance_template SET ScriptName='instance_obsidian_sanctum' WHERE map=615;

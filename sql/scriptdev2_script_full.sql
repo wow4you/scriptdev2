@@ -2540,6 +2540,30 @@ INSERT INTO script_texts (entry,content_default,sound,type,language,emote,commen
 (-1576022,'%s shields himself and divert his power to the rifts!',0,3,0,0,'anomalus EMOTE_SHIELD');
 
 -- -1 578 000 OCULUS
+INSERT IGNORE INTO `script_texts` (`entry`,`content_default`,`sound`,`type`,`language`,`comment`) VALUES
+(-1578000, 'Intruders, your victory will be short-lived. I am Commander Varos Cloudstrider. My drakes control the skies and protect this conduit. I will see to it personally that the Oculus does not fall into your hands!',13648,6,0,'varos SAY_INTRO'),
+
+(-1578001, 'What do we have here... those would defy the Spell-Weaver? Those without foresight or understanding. How could I make you see? Malygos is saving the world from itself! Bah! You are hardly worth my time!',13635,1,0,'urom SAY_SUMMON_1'),
+(-1578002, 'Clearly my pets failed. Perhaps another demonstration is in order.',13636,1,0,'urom SAY_SUMMON_2'),
+(-1578003, 'Still you fight. Still you cling to misguided principles. If you survive, you\'ll find me in the center ring.',13637,1,0,'urom SAY_SUMMON_3'),
+(-1578004, 'Poor blind fools!',13638,1,0,'urom SAY_AGGRO'),
+(-1578005, 'A taste... just a small taste... of the Spell-Weaver\'s power!',13639,1,0,'urom SAY_EXPLOSION_1'),
+(-1578006, 'So much unstable energy... but worth the risk to destroy you!',13640,1,0,'urom SAY_EXPLOSION_2'),
+(-1578007, 'If only you understood!',13641,1,0,'urom SAY_KILL_1'),
+(-1578008, 'Now do you see? Do you?!',13642,1,0,'urom SAY_KILL_2'),
+(-1578009, 'Unfortunate, but necessary.',13643,1,0,'urom SAY_KILL_3'),
+(-1578010, 'Everything I\'ve done... has been for Azeroth...',13644,1,0,'urom SAY_DEATH'),
+
+(-1578011, 'Simpletons! You cannot comprehend the forces you have set in motion. The ley line conduit will not be disrupted! Your defeat shall be absolute!',13622,6,0,'eregos SAY_SPAWN'),
+(-1578012, 'You brash interlopers are out of your element! I will ground you!',13623,1,0,'eregos SAY_AGGRO'),
+(-1578013, 'We command the arcane! It shall not be used against us.',13626,1,0,'eregos SAY_ARCANE_SHIELD'),
+(-1578014, 'It is trivial to extinguish your fire!',13627,1,0,'eregos SAY_FIRE_SHIELD'),
+(-1578015, 'No magic of nature will help you now!',13625,1,0,'eregos SAY_NATURE_SHIELD'),
+(-1578016, 'Such insolence... such arrogance... must be PUNISHED!',13624,1,0,'eregos SAY_FRENZY'),
+(-1578017, 'It\'s a long way down...',13628,1,0,'eregos SAY_KILL_1'),
+(-1578018, 'Back to the earth with you!',13629,1,0,'eregos SAY_KILL_2'),
+(-1578019, 'Enjoy the fall!',13630,1,0,'eregos SAY_KILL_3'),
+(-1578020, 'Savor this small victory, foolish little creatures. You and your dragon allies have won this battle. But we will win... the Nexus War.',13631,1,0,'eregos SAY_DEATH');
 
 -- -1 580 000 SUNWELL PLATEAU
 INSERT INTO script_texts (entry,content_default,sound,type,language,emote,comment) VALUES
@@ -4116,7 +4140,7 @@ INSERT INTO gossip_texts (entry,content_default,comment) VALUES
 
 -- -3 609 000 EBON HOLD
 INSERT INTO gossip_texts (entry,content_default,comment) VALUES
-(-3609001,'I am ready, Highlord. Let the siege of Light\'s Hope begin!','darion morgraine GOSSIP_ITEM_READY'),
+(-3609001,'I am ready, Highlord. Let the siege of Light\'s Hope begin!','darion morgraine GOSSIP_ITEM_READY');
 
 -- -3 649 000 TRIAL OF CRUSADER
 INSERT INTO gossip_texts (entry,content_default,comment) VALUES
