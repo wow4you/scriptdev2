@@ -63,7 +63,9 @@ void instance_draktharon_keep::OnCreatureCreate(Creature* pCreature)
     switch (pCreature->GetEntry())
     {
         case NPC_NOVOS:
-            m_mNpcEntryGuidStore[NPC_NOVOS] = pCreature->GetObjectGuid();
+        case NPC_TROLLGORE:
+        case NPC_TROLLGORE_TRIGGER:
+            m_mNpcEntryGuidStore[pCreature->GetEntry()] = pCreature->GetObjectGuid();
             break;
         case NPC_CRYSTAL_CHANNEL_TARGET:
             m_lNovosDummyGuids.push_back(pCreature->GetObjectGuid());

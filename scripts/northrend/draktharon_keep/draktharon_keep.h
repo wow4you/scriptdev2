@@ -16,6 +16,8 @@ enum
 
     NPC_NOVOS                       = 26631,
     NPC_KING_DRED                   = 27483,
+    NPC_TROLLGORE                   = 26630,
+    NPC_TROLLGORE_TRIGGER           = 22515,
 
     // Adds of King Dred Encounter - deaths counted for achievement
     NPC_DRAKKARI_GUTRIPPER          = 26641,
