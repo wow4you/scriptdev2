@@ -35,6 +35,8 @@ enum
     SAY_DEATH                 = -1604006,
     EMOTE_NOVA                = -1604007,
 
+    MAX_GRIP_STACKS           = 5,
+
     // Slad'Ran spells
     SPELL_POISON_NOVA         = 55081,
     SPELL_POISON_NOVA_H       = 59842,
@@ -49,6 +51,13 @@ enum
 
     SPELL_GRIP_OF_SLADRAN     = 55093,
     SPELL_GRIP_OF_SLADRAN_H   = 61474,
+
+    SPELL_SNAKE_WRAP          = 55099,
+    SPELL_SNAKE_WRAP_AURA     = 55126,
+    SPELL_SNAKE_WRAP_KILL     = 55127,      // kill snakes
+    SPELL_SNAKE_WRAP_EFFECT   = 55128,      // cast on 5 stacks
+    SPELL_SNAKE_WRAP_H        = 61475,
+    SPELL_SNAKE_WRAP_AURA_H   = 61476,
 
     NPC_SLADRAN_CONSTRICTOR   = 29713,
     NPC_SLADRAN_VIPER         = 29680,
@@ -230,17 +239,79 @@ CreatureAI* GetAI_boss_sladran(Creature* pCreature)
     return new boss_sladranAI(pCreature);
 }
 
+struct MANGOS_DLL_DECL npc_sladran_constrictorAI : public ScriptedAI
+{
+    npc_sladran_constrictorAI(Creature* pCreature) : ScriptedAI(pCreature)
+    {
+        m_pInstance = (instance_gundrak*)pCreature->GetInstanceData();
+        m_bIsRegularMode = pCreature->GetMap()->IsRegularDifficulty();
+        Reset();
+    }
+
+    instance_gundrak* m_pInstance;
+    bool m_bIsRegularMode;
+
+    uint32 m_uiGripOfSladranTimer;
+
+    void Reset()
+    {
+        m_uiGripOfSladranTimer = 3000;
+    }
+
+    void JustSummoned(Creature* pSummoned)
+    {
+        if (pSummoned->GetEntry() == NPC_SNAKE_WRAP)
+            pSummoned->AI()->AttackStart(m_creature->getVictim());
+    }
+
+    void UpdateAI(const uint32 uiDiff)
+    {
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+            return;
+
+        if (m_uiGripOfSladranTimer < uiDiff)
+        {
+            if (DoCastSpellIfCan(m_creature->getVictim(), m_bIsRegularMode ? SPELL_GRIP_OF_SLADRAN : SPELL_GRIP_OF_SLADRAN_H) == CAST_OK)
+            {
+                /*if (m_creature->getVictim()->HasAura(m_bIsRegularMode ? SPELL_GRIP_OF_SLADRAN : SPELL_GRIP_OF_SLADRAN_H))
+                {
+                    Aura* AuraGrip = m_creature->getVictim()->GetAura(m_bIsRegularMode ? SPELL_GRIP_OF_SLADRAN : SPELL_GRIP_OF_SLADRAN_H, EFFECT_INDEX_0);
+
+                    if (AuraGrip && AuraGrip->GetStackAmount() == MAX_GRIP_STACKS)
+                        DoCastSpellIfCan(m_creature->getVictim(), SPELL_SNAKE_WRAP_EFFECT, CAST_TRIGGERED);
+                }*/
+
+                m_uiGripOfSladranTimer = 5000;
+            }
+        }
+        else
+            m_uiGripOfSladranTimer -= uiDiff;
+
+        DoMeleeAttackIfReady();
+    }
+};
+
+CreatureAI* GetAI_npc_sladran_constrictor(Creature* pCreature)
+{
+    return new npc_sladran_constrictorAI(pCreature);
+}
+
 void AddSC_boss_sladran()
 {
-    Script* newscript;
+    Script* pNewScript;
 
-    newscript = new Script;
-    newscript->Name = "boss_sladran";
-    newscript->GetAI = &GetAI_boss_sladran;
-    newscript->RegisterSelf();
+    pNewScript = new Script;
+    pNewScript->Name = "boss_sladran";
+    pNewScript->GetAI = &GetAI_boss_sladran;
+    pNewScript->RegisterSelf();
 
-    newscript = new Script;
-    newscript->Name = "mob_sladran_summon_target";
-    newscript->GetAI = &GetAI_mob_sladran_summon_target;
-    newscript->RegisterSelf();
+    pNewScript = new Script;
+    pNewScript->Name = "mob_sladran_summon_target";
+    pNewScript->GetAI = &GetAI_mob_sladran_summon_target;
+    pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "npc_sladran_constrictor";
+    pNewScript->GetAI = &GetAI_npc_sladran_constrictor;
+    pNewScript->RegisterSelf();
 }

@@ -631,11 +631,13 @@ UPDATE creature_template SET ScriptName='boss_krosh_firehand' WHERE entry=18832;
 
 /* GUNDRAK */
 UPDATE creature_template SET ScriptName='boss_colossus' WHERE entry=29307;
+UPDATE creature_template SET ScriptName='boss_elemental' WHERE entry=29573;
 UPDATE creature_template SET ScriptName='boss_eck' WHERE entry=29932;
 UPDATE creature_template SET ScriptName='boss_galdarah' WHERE entry=29306;
 UPDATE creature_template SET ScriptName='boss_moorabi' WHERE entry=29305;
 UPDATE creature_template SET ScriptName='boss_sladran' WHERE entry=29304;
 UPDATE creature_template SET ScriptName='mob_sladran_summon_target' WHERE entry=29682;
+UPDATE creature_template SET ScriptName='npc_sladran_constrictor' WHERE entry=29713;
 UPDATE gameobject_template SET ScriptName='go_gundrak_altar' WHERE entry IN (192518, 192519, 192520);
 UPDATE instance_template SET ScriptName='instance_gundrak' WHERE map=604;
 

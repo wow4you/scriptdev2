@@ -42,7 +42,9 @@ bool GOUse_go_gundrak_altar(Player* pPlayer, GameObject* pGo)
     return true;
 }
 
-instance_gundrak::instance_gundrak(Map* pMap) : ScriptedInstance(pMap)
+instance_gundrak::instance_gundrak(Map* pMap) : ScriptedInstance(pMap),
+    m_bLessRabi(false),
+    m_uiColossusStartTimer(0)
 {
     Initialize();
 }
@@ -67,6 +69,10 @@ void instance_gundrak::OnCreatureCreate(Creature* pCreature)
 
         case NPC_INVISIBLE_STALKER:
             m_luiStalkerGUIDs.push_back(pCreature->GetObjectGuid());
+            break;
+        case NPC_LIVIN_MOJO:
+            if (pCreature->GetPositionX() > 1650.0f)
+                m_sColossusMojosGuids.insert(pCreature->GetObjectGuid());
             break;
     }
 }
@@ -182,6 +188,8 @@ void instance_gundrak::SetData(uint32 uiType, uint32 uiData)
                 if (GameObject* pGo = GetSingleGameObjectFromStorage(GO_ALTAR_OF_MOORABI))
                     pGo->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NO_INTERACT);
             }
+            if (uiData == IN_PROGRESS)
+                SetLessRabiAchievementCriteria(true);
             if (uiData == SPECIAL)
                 m_mAltarInProgress.insert(TypeTimerPair(TYPE_MOORABI, TIMER_VISUAL_ALTAR));
             break;
@@ -190,6 +198,14 @@ void instance_gundrak::SetData(uint32 uiType, uint32 uiData)
             if (uiData == DONE)
                 if (GameObject* pGo = GetSingleGameObjectFromStorage(GO_ALTAR_OF_COLOSSUS))
                     pGo->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NO_INTERACT);
+            if (uiData == FAIL)
+            {
+                for (GUIDSet::const_iterator itr = m_sColossusMojosGuids.begin(); itr != m_sColossusMojosGuids.end(); ++itr)
+                {
+                    if (Creature* pMojo = instance->GetCreature(*itr))
+                        pMojo->Respawn();
+                }
+            }
             if (uiData == SPECIAL)
                 m_mAltarInProgress.insert(TypeTimerPair(TYPE_COLOSSUS, TIMER_VISUAL_ALTAR));
             break;
@@ -206,6 +222,16 @@ void instance_gundrak::SetData(uint32 uiType, uint32 uiData)
             m_auiEncounter[TYPE_ECK] = uiData;
             if (uiData == DONE)
                 DoUseDoorOrButton(GO_ECK_UNDERWATER_DOOR);
+            break;
+        case TYPE_WHY_SNAKES_FAILED:
+            // insert the players who failed the achiev
+            if (m_uisWhySnakesAchievPlayers.find(uiData) == m_uisWhySnakesAchievPlayers.end())
+                m_uisWhySnakesAchievPlayers.insert(uiData);
+            break;
+        case TYPE_SHARE_LOVE_PLAYER:
+            // insert players who got stampeled
+            if (m_uisShareLoveAchievPlayers.find(uiData) == m_uisShareLoveAchievPlayers.end())
+                m_uisShareLoveAchievPlayers.insert(uiData);
             break;
         default:
             error_log("SD2: Instance Gundrak: ERROR SetData = %u for type %u does not exist/not implemented.", uiType, uiData);
@@ -233,6 +259,49 @@ uint32 instance_gundrak::GetData(uint32 uiType)
         return m_auiEncounter[uiType];
 
     return 0;
+}
+
+void instance_gundrak::OnCreatureEnterCombat(Creature* pCreature)
+{
+    if (pCreature->GetEntry() == NPC_LIVIN_MOJO)
+    {
+        if (m_sColossusMojosGuids.find(pCreature->GetObjectGuid()) != m_sColossusMojosGuids.end())
+        {
+            if (Creature* pColossus = GetSingleCreatureFromStorage(NPC_COLOSSUS))
+            {
+                for (GUIDSet::const_iterator itr = m_sColossusMojosGuids.begin(); itr != m_sColossusMojosGuids.end(); ++itr)
+                {
+                    if (Creature* pMojo = instance->GetCreature(*itr))
+                    {
+                        if (pMojo->isInCombat())
+                            pMojo->AI()->EnterEvadeMode();
+
+                        pMojo->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
+                        pMojo->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
+                        pMojo->GetMotionMaster()->MovePoint(0, pColossus->GetPositionX(), pColossus->GetPositionY(), pColossus->GetPositionZ());
+                        pMojo->ForcedDespawn(2000);
+                        m_uiColossusStartTimer = 2000;
+                    }
+                }
+            }
+        }
+    }
+}
+
+bool instance_gundrak::CheckAchievementCriteriaMeet(uint32 uiCriteriaId, Player const* pSource, Unit const* pTarget, uint32 uiMiscValue1 /* = 0*/)
+{
+    switch (uiCriteriaId)
+    {
+        case ACHIEV_CRIT_LESS_RABI:
+            return m_bLessRabi;
+        case ACHIEV_CRIT_SHARE_LOVE:
+            return m_uisShareLoveAchievPlayers.size() == MIN_LOVE_SHARE_PLAYERS;
+        case ACHIEV_CRIT_WHY_SNAKES:
+            return m_uisWhySnakesAchievPlayers.find(pSource->GetGUIDLow()) == m_uisWhySnakesAchievPlayers.end();
+
+        default:
+            return false;
+    }
 }
 
 static bool sortFromEastToWest(Creature* pFirst, Creature* pSecond)
@@ -383,6 +452,21 @@ void instance_gundrak::Update(uint32 uiDiff)
                 ++itr;
             }
         }
+    }
+
+    if (m_uiColossusStartTimer)
+    {
+        if (m_uiColossusStartTimer <= uiDiff)
+        {
+            if (Creature* pColossus = GetSingleCreatureFromStorage(NPC_COLOSSUS))
+            {
+                pColossus->RemoveAurasDueToSpell(SPELL_FREEZE_ANIM);
+                pColossus->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
+            }
+            m_uiColossusStartTimer = 0;
+        }
+        else
+            m_uiColossusStartTimer -= uiDiff;
     }
 }
 

@@ -14,12 +14,15 @@
 enum
 {
     MAX_ENCOUNTER          = 5,
+    MIN_LOVE_SHARE_PLAYERS = 5,
 
     TYPE_SLADRAN           = 0,
     TYPE_MOORABI           = 1,
     TYPE_COLOSSUS          = 2,
     TYPE_GALDARAH          = 3,
     TYPE_ECK               = 4,
+    TYPE_WHY_SNAKES_FAILED = 5,
+    TYPE_SHARE_LOVE_PLAYER = 6,
 
     NPC_SLADRAN            = 29304,
     NPC_MOORABI            = 29305,
@@ -52,9 +55,15 @@ enum
     SPELL_BEAM_SNAKE       = 57071,
     SPELL_BEAM_ELEMENTAL   = 57072,
 
+    SPELL_FREEZE_ANIM      = 16245,             // Colossus freeze aura
+
     TIMER_VISUAL_ALTAR     = 3000,
     TIMER_VISUAL_BEAM      = 2500,
     TIMER_VISUAL_KEY       = 2000,
+
+    ACHIEV_CRIT_LESS_RABI  = 7319,              // Moorabi achiev 2040
+    ACHIEV_CRIT_SHARE_LOVE = 7583,              // Galdarah achiev 2152
+    ACHIEV_CRIT_WHY_SNAKES = 7363,              // Sladran achiev 2058
 };
 
 typedef std::map<uint8, uint32>  TypeTimerMap;
@@ -69,10 +78,14 @@ class MANGOS_DLL_DECL instance_gundrak : public ScriptedInstance
         void Initialize();
 
         void OnCreatureCreate(Creature* pCreature);
+        void OnCreatureEnterCombat(Creature* pCreature);
         void OnObjectCreate(GameObject* pGo);
 
         void SetData(uint32 uiType, uint32 uiData);
         uint32 GetData(uint32 uiType);
+
+        void SetLessRabiAchievementCriteria(bool bIsMet) { m_bLessRabi = bIsMet; }
+        bool CheckAchievementCriteriaMeet(uint32 uiCriteriaId, Player const* pSource, Unit const* pTarget, uint32 uiMiscValue1 /* = 0*/);
 
         const char* Save() { return m_strInstData.c_str(); }
         void Load(const char* chrIn);
@@ -84,13 +97,20 @@ class MANGOS_DLL_DECL instance_gundrak : public ScriptedInstance
         uint32 m_auiEncounter[MAX_ENCOUNTER];
         std::string m_strInstData;
 
+        bool m_bLessRabi;
+        uint32 m_uiColossusStartTimer;
+
         TypeTimerMap m_mAltarInProgress;
         TypeTimerMap m_mBeamInProgress;
         TypeTimerMap m_mKeyInProgress;
 
+        std::set<uint32> m_uisShareLoveAchievPlayers;
+        std::set<uint32> m_uisWhySnakesAchievPlayers;
+
         GUIDList m_luiStalkerGUIDs;
         GUIDVector m_vStalkerCasterGuids;
         GUIDVector m_vStalkerTargetGuids;
+        GUIDSet m_sColossusMojosGuids;
 };
 
 #endif
