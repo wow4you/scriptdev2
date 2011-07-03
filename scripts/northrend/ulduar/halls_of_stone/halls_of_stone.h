@@ -44,6 +44,9 @@ enum
     FACE_KADDRAK            = 2,
 
     ACHIEV_START_MAIDEN_ID  = 20383,
+
+    ACHIEV_CRITERIA_BRANN   = 7590,             // Tribunal of ages achiev - 2154
+    ACHIEV_CRITERIA_OOZE    = 7593,             // Sjonnir achiev - 2155
 };
 
 struct Face
