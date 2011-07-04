@@ -47,7 +47,7 @@ enum
 
     SPELL_PULSING_SHOCKWAVE_N           = 52961,
     SPELL_PULSING_SHOCKWAVE_H           = 59836,
-    SPELL_PULSING_SHOCKWAVE_AURA        = 59414
+    SPELL_PULSING_SHOCKWAVE_AURA        = 59414                     // needs core support
 };
 
 /*######
@@ -60,30 +60,28 @@ struct MANGOS_DLL_DECL boss_lokenAI : public ScriptedAI
     {
         m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
         m_bIsRegularMode = pCreature->GetMap()->IsRegularDifficulty();
+        m_bHasDoneIntro = false;
         Reset();
     }
 
     ScriptedInstance* m_pInstance;
 
     bool m_bIsRegularMode;
-    bool m_bIsAura;
 
     uint32 m_uiArcLightning_Timer;
     uint32 m_uiLightningNova_Timer;
-    uint32 m_uiPulsingShockwave_Timer;
-    uint32 m_uiResumePulsingShockwave_Timer;
 
     uint32 m_uiHealthAmountModifier;
 
+    bool m_bHasDoneIntro;
+    uint32 m_uiIntroTimer;
+
     void Reset()
     {
-        m_bIsAura = false;
-
         m_uiArcLightning_Timer = 15000;
         m_uiLightningNova_Timer = 20000;
-        m_uiPulsingShockwave_Timer = 2000;
-        m_uiResumePulsingShockwave_Timer = 15000;
 
+        m_uiIntroTimer = 0;
         m_uiHealthAmountModifier = 1;
 
         if (m_pInstance)
@@ -93,6 +91,9 @@ struct MANGOS_DLL_DECL boss_lokenAI : public ScriptedAI
     void Aggro(Unit* pWho)
     {
         DoScriptText(SAY_AGGRO, m_creature);
+
+        if (DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_PULSING_SHOCKWAVE_N : SPELL_PULSING_SHOCKWAVE_H) == CAST_OK)
+            DoCastSpellIfCan(m_creature, SPELL_PULSING_SHOCKWAVE_AURA, CAST_TRIGGERED);
 
         if (m_pInstance)
             m_pInstance->SetData(TYPE_LOKEN, IN_PROGRESS);
@@ -116,56 +117,34 @@ struct MANGOS_DLL_DECL boss_lokenAI : public ScriptedAI
         }
     }
 
+    void MoveInLineOfSight(Unit* pWho)
+    {
+        if (!m_bHasDoneIntro && m_creature->IsWithinDistInMap(pWho, 55.0f) && m_creature->IsWithinLOSInMap(pWho) && pWho->GetTypeId() == TYPEID_PLAYER)
+        {
+            DoScriptText(SAY_INTRO_1, m_creature);
+            m_uiIntroTimer = 21000;
+            m_bHasDoneIntro = true;
+        }
+
+        ScriptedAI::MoveInLineOfSight(pWho);
+    }
+
     void UpdateAI(const uint32 uiDiff)
     {
+        if (m_uiIntroTimer)
+        {
+            if (m_uiIntroTimer <= uiDiff)
+            {
+                DoScriptText(SAY_INTRO_2, m_creature);
+                m_uiIntroTimer = 0;
+            }
+            else
+                m_uiIntroTimer -= uiDiff;
+        }
+
         //Return since we have no target
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
-
-        if (m_bIsAura)
-        {
-            // workaround for PULSING_SHOCKWAVE
-            /*if (m_uiPulsingShockwave_Timer < uiDiff)
-            {
-                Map *map = m_creature->GetMap();
-                if (map->IsDungeon())
-                {
-                    Map::PlayerList const &PlayerList = map->GetPlayers();
-
-                    if (PlayerList.isEmpty())
-                        return;
-
-                    for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-                        if (i->getSource()->isAlive() && i->getSource()->isTargetableForAttack())
-                        {
-                            int32 dmg;
-                            float m_fDist = m_creature->GetDistance(i->getSource());
-
-                            if (m_fDist <= 1.0f) // Less than 1 yard
-                                dmg = (m_bIsRegularMode ? 800 : 850); // need to correct damage
-                            else // Further from 1 yard
-                                dmg = round((m_bIsRegularMode ? 200 : 250) * m_fDist) + (m_bIsRegularMode ? 800 : 850); // need to correct damage
-
-                            m_creature->CastCustomSpell(i->getSource(), (m_bIsRegularMode ? 52942 : 59837), &dmg, 0, 0, false);
-                        }
-                }
-                m_uiPulsingShockwave_Timer = 2000;
-            }else m_uiPulsingShockwave_Timer -= uiDiff;*/
-        }
-        else
-        {
-            if (m_uiResumePulsingShockwave_Timer < uiDiff)
-            {
-                //breaks at movement, can we assume when it's time, this spell is casted and also must stop movement?
-                //m_creature->CastSpell(m_creature, SPELL_PULSING_SHOCKWAVE_AURA, true);
-
-                  //DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_PULSING_SHOCKWAVE_N : SPELL_PULSING_SHOCKWAVE_H); // need core support
-                m_bIsAura = true;
-                m_uiResumePulsingShockwave_Timer = 0;
-            }
-            else
-                m_uiResumePulsingShockwave_Timer -= uiDiff;
-        }
 
         if (m_uiArcLightning_Timer < uiDiff)
         {
@@ -187,9 +166,6 @@ struct MANGOS_DLL_DECL boss_lokenAI : public ScriptedAI
             }
 
             DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_LIGHTNING_NOVA_N : SPELL_LIGHTNING_NOVA_H);
-
-            m_bIsAura = false;
-            m_uiResumePulsingShockwave_Timer = (m_bIsRegularMode ? 5000 : 4000); // Pause Pulsing Shockwave aura
             m_uiLightningNova_Timer = urand(20000, 21000);
         }
         else
@@ -219,10 +195,10 @@ CreatureAI* GetAI_boss_loken(Creature* pCreature)
 
 void AddSC_boss_loken()
 {
-    Script *newscript;
+    Script* pNewScript;
 
-    newscript = new Script;
-    newscript->Name = "boss_loken";
-    newscript->GetAI = &GetAI_boss_loken;
-    newscript->RegisterSelf();
+    pNewScript = new Script;
+    pNewScript->Name = "boss_loken";
+    pNewScript->GetAI = &GetAI_boss_loken;
+    pNewScript->RegisterSelf();
 }

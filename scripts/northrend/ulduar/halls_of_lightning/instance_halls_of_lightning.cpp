@@ -31,7 +31,8 @@ EndScriptData */
 3 - Loken
 */
 
-instance_halls_of_lightning::instance_halls_of_lightning(Map* pMap) : ScriptedInstance(pMap)
+instance_halls_of_lightning::instance_halls_of_lightning(Map* pMap) : ScriptedInstance(pMap),
+    m_bIsShatterResistant(false)
 {
     Initialize();
 }
@@ -87,6 +88,10 @@ void instance_halls_of_lightning::SetData(uint32 uiType, uint32 uiData)
         case TYPE_VOLKHAN:
             if (uiData == DONE)
                 DoUseDoorOrButton(GO_VOLKHAN_DOOR);
+            if (uiData == IN_PROGRESS)
+                m_bIsShatterResistant = true;
+            if (uiData == SPECIAL)
+                m_bIsShatterResistant = false;
             m_auiEncounter[uiType] = uiData;
             break;
         case TYPE_IONAR:
@@ -99,7 +104,8 @@ void instance_halls_of_lightning::SetData(uint32 uiType, uint32 uiData)
                 DoStartTimedAchievement(ACHIEVEMENT_CRITERIA_TYPE_KILL_CREATURE, ACHIEV_START_LOKEN_ID);
             if (uiData == DONE)
             {
-                DoUseDoorOrButton(GO_LOKEN_DOOR);
+                // the door after loken is opened
+                //DoUseDoorOrButton(GO_LOKEN_DOOR);
 
                 //Appears to be type 5 GO with animation. Need to figure out how this work, code below only placeholder
                 if (GameObject* pGlobe = GetSingleGameObjectFromStorage(GO_LOKEN_THRONE))
@@ -151,6 +157,14 @@ void instance_halls_of_lightning::Load(const char* chrIn)
     }
 
     OUT_LOAD_INST_DATA_COMPLETE;
+}
+
+bool instance_halls_of_lightning::CheckAchievementCriteriaMeet(uint32 uiCriteriaId, Player const* pSource, Unit const* pTarget, uint32 uiMiscValue1 /* = 0*/)
+{
+    if (uiCriteriaId == ACHIEV_CRIT_SHATTER_RES)
+        return m_bIsShatterResistant;
+
+    return false;
 }
 
 InstanceData* GetInstanceData_instance_halls_of_lightning(Map* pMap)
