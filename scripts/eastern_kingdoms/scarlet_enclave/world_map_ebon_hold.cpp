@@ -227,7 +227,7 @@ void world_map_ebon_hold::DoMoveArmy()
     {
         if (Creature* pTemp = instance->GetCreature(*itr))
         {
-            pTemp->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
+            pTemp->SetWalk(false);
             pTemp->GetRandomPoint(aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ, 30.0f, fX, fY, fZ);
             pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
         }

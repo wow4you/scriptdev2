@@ -277,7 +277,7 @@ void instance_gundrak::OnCreatureEnterCombat(Creature* pCreature)
                             pMojo->AI()->EnterEvadeMode();
 
                         pMojo->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
-                        pMojo->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
+                        pMojo->SetWalk(false);
                         pMojo->GetMotionMaster()->MovePoint(0, pColossus->GetPositionX(), pColossus->GetPositionY(), pColossus->GetPositionZ());
                         pMojo->ForcedDespawn(2000);
                         m_uiColossusStartTimer = 2000;
