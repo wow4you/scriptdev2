@@ -28,6 +28,7 @@ enum
     WORLD_STATE_PORTALS         = 3810,
 
     GO_INTRO_CRYSTAL            = 193615,
+    GO_PRISON_CRYSTAL           = 193611,
     GO_PRISON_SEAL_DOOR         = 191723,
 
     GO_CELL_LAVANTHOR           = 191566,
@@ -70,6 +71,8 @@ enum
     NPC_AZURE_SORCEROR          = 30667,
     NPC_AZURE_RAIDER            = 30668,
     NPC_AZURE_STALKER           = 32191,
+    NPC_VOID_SENTRY             = 29364,            // Add checked for Zuramat achiev
+    NPC_ICHORON_SUMMON_TARGET   = 29326,            // Npc which summons the Ichoron globules
 
     // used for intro
     NPC_AZURE_BINDER_INTRO      = 31007,
@@ -92,6 +95,8 @@ enum
 
     SPELL_DEFENSE_SYSTEM_VISUAL = 57887,
     SPELL_DEFENSE_SYSTEM_SPAWN  = 57886,
+    SPELL_ARCANE_LIGHTNING_INTR = 60038,                    // intro kill spell - triggers 58152
+    SPELL_ARCANE_LIGHTNING      = 57930,                    // damage spell - triggers 57912
 
     SPELL_DESTROY_DOOR_SEAL     = 58040,                    // spell periodic cast by misc
     SPELL_TELEPORTATION_PORTAL  = 57687,                    // visual aura, but possibly not used? creature_template model for portals are same
@@ -118,10 +123,16 @@ enum
     EMOTE_DRAGONFLIGHT_PORTAL   = -1608006,
     EMOTE_KEEPER_PORTAL         = -1608007,
 
-    MAX_NORMAL_PORTAL           = 8
+    MAX_NORMAL_PORTAL           = 8,
+
+    ACHIEV_CRIT_DEFENSELES      = 6803,                     // Achiev Defenseless 1816
+    ACHIEV_CRIT_DEHYDRATATION   = 7320,                     // Ichoron achiev - 2041
+    ACHIEV_CRIT_VOID_DANCE      = 7587,                     // Zuramat achiev - 2153
 };
 
 static const float fDefenseSystemLoc[4] = {1888.146f, 803.382f, 58.604f, 3.072f};
+static const float fAttackPositionLoc[3] = {1858.027f, 804.11f, 44.008f};
+static const float fCyanigosaMoveLoc[3] = {1890.73f, 803.309f, 38.4001f};
 
 enum ePortalType
 {
@@ -221,7 +232,12 @@ class MANGOS_DLL_DECL instance_violet_hold : public ScriptedInstance
 
         void ProcessActivationCrystal(Unit* pUser, bool bIsIntro = false);
 
+        void GetIchoronTriggerList(GUIDList& lList) { lList = m_lIchoronTargetsList; }
+        void GetErekemGuardList(GUIDList& lList) { lList = m_lGuardsList; }
+
         void SetRandomBosses();
+
+        void SetActivationCrystals(bool bIsReset = false);
 
         void OnPlayerEnter(Player* pPlayer);
 
@@ -236,6 +252,8 @@ class MANGOS_DLL_DECL instance_violet_hold : public ScriptedInstance
         void Load(const char* chrIn);
 
         void Update(uint32 uiDiff);
+
+        bool CheckAchievementCriteriaMeet(uint32 uiCriteriaId, Player const* pSource, Unit const* pTarget, uint32 uiMiscValue1 /* = 0*/);
 
         typedef std::multimap<uint32, ObjectGuid> BossToCellMap;
 
@@ -252,10 +270,16 @@ class MANGOS_DLL_DECL instance_violet_hold : public ScriptedInstance
         uint32 m_uiPortalTimer;
         uint32 m_uiMaxCountPortalLoc;
 
+        bool m_bIsVoidDance;
+        bool m_bIsDehydratation;
+        bool m_bIsDefenseless;
+
         BossToCellMap m_mBossToCellMap;
 
         GUIDList m_lIntroPortalList;
         GUIDList m_lGuardsList;
+        GUIDList m_lCrystalList;
+        GUIDList m_lIchoronTargetsList;
         std::list<uint32> m_lRandomBossList;
 
         std::vector<BossSpawn*> m_vRandomBosses;

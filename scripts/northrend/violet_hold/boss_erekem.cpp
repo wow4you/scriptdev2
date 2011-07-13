@@ -16,7 +16,7 @@
 
 /* ScriptData
 SDName: boss_erekem
-SD%Complete: 0
+SD%Complete: Erekem controller - 29425 - not used
 SDComment: Placeholder
 SDCategory: Violet Hold
 EndScriptData */
@@ -49,7 +49,9 @@ enum
     // Spells of adds
     SPELL_GUSHING_WOUND         = 39215,
     SPELL_HOWLING_SCREECH       = 54463,
-    SPELL_STRIKE                = 14516
+    SPELL_STRIKE                = 14516,
+
+    MAX_GUARDIANS               = 2
 };
 
 struct MANGOS_DLL_DECL boss_erekemAI : public ScriptedAI
@@ -58,15 +60,29 @@ struct MANGOS_DLL_DECL boss_erekemAI : public ScriptedAI
     {
         m_pInstance = (instance_violet_hold*)pCreature->GetInstanceData();
         m_bIsRegularMode = pCreature->GetMap()->IsRegularDifficulty();
-
         Reset();
     }
 
     instance_violet_hold* m_pInstance;
     bool m_bIsRegularMode;
 
+    uint32 m_uiBloodlustTimer;
+    uint32 m_uiBreakBondsTimer;
+    uint32 m_uiChainHealTimer;
+    uint32 m_uiEarthShieldTimer;
+    uint32 m_uiEarthShockTimer;
+    uint32 m_uiSpecialSpellTimer;
+    uint8 m_uiGuardiansDead;
+
     void Reset()
     {
+        m_uiSpecialSpellTimer   = 2000;
+        m_uiEarthShieldTimer    = urand(15000, 20000);
+        m_uiEarthShockTimer     = urand(12000, 17000);
+        m_uiChainHealTimer      = urand(5000, 25000);
+        m_uiBreakBondsTimer     = urand(25000, 30000);
+        m_uiBloodlustTimer      = urand(60000, 65000);
+        m_uiGuardiansDead       = 0;
     }
 
     void Aggro(Unit* pWho)
@@ -79,10 +95,70 @@ struct MANGOS_DLL_DECL boss_erekemAI : public ScriptedAI
         DoScriptText(SAY_DEATH, m_creature);
     }
 
+    void GuardianJustDied()
+    {
+        DoScriptText(urand(0, 1) ? SAY_ADD_DIE_1 : SAY_ADD_DIE_2, m_creature);
+        ++m_uiGuardiansDead;
+
+        // cast bloodlust if both guards are dead
+        if (m_uiGuardiansDead == MAX_GUARDIANS)
+        {
+            m_creature->InterruptNonMeleeSpells(false);
+            DoCastSpellIfCan(m_creature, SPELL_BLOODLUST);
+        }
+    }
+
     void UpdateAI(const uint32 uiDiff)
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
+
+        if (m_uiEarthShieldTimer < uiDiff)
+        {
+            if (DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_EARTH_SHIELD : SPELL_EARTH_SHIELD_H) == CAST_OK)
+                m_uiEarthShieldTimer = urand(15000, 20000);
+        }
+        else
+            m_uiEarthShieldTimer -= uiDiff;
+
+        if (m_uiEarthShockTimer < uiDiff)
+        {
+            if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+            {
+                if (DoCastSpellIfCan(pTarget, SPELL_EARTH_SHOCK) == CAST_OK)
+                    m_uiEarthShockTimer = urand(12000, 17000);
+            }
+        }
+        else
+            m_uiEarthShockTimer -= uiDiff;
+
+        if (m_uiChainHealTimer < uiDiff)
+        {
+            if (DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_CHAIN_HEAL : SPELL_CHAIN_HEAL_H) == CAST_OK)
+                m_uiChainHealTimer = urand(5000, 25000);
+        }
+        else
+            m_uiChainHealTimer -= uiDiff;
+
+        if (m_uiSpecialSpellTimer < uiDiff)
+        {
+            if (DoCastSpellIfCan(m_creature->getVictim(), m_uiGuardiansDead == MAX_GUARDIANS ? SPELL_STORMSTRIKE : SPELL_LIGHTNING_BOLT) == CAST_OK)
+                m_uiSpecialSpellTimer = 2000;
+        }
+        else
+            m_uiSpecialSpellTimer -= uiDiff;
+
+        // Break bonds only on heroic
+        if (!m_bIsRegularMode)
+        {
+            if (m_uiBreakBondsTimer < uiDiff)
+            {
+                if (DoCastSpellIfCan(m_creature, SPELL_BREAK_BONDS_H) == CAST_OK)
+                    m_uiBreakBondsTimer = urand(25000, 30000);
+            }
+            else
+                m_uiBreakBondsTimer -= uiDiff;
+        }
 
         DoMeleeAttackIfReady();
     }
@@ -93,6 +169,80 @@ CreatureAI* GetAI_boss_erekem(Creature* pCreature)
     return new boss_erekemAI(pCreature);
 }
 
+struct MANGOS_DLL_DECL npc_erekem_guardAI : public ScriptedAI
+{
+    npc_erekem_guardAI(Creature *pCreature) : ScriptedAI(pCreature)
+    {
+        m_pInstance = ((instance_violet_hold*)pCreature->GetInstanceData());
+        Reset();
+    }
+
+    instance_violet_hold* m_pInstance;
+
+    uint32 m_uiGushingWoundTimer;
+    uint32 m_uiHowlingScreechTimer;
+    uint32 m_uiStrikeTimer;
+
+    void Reset()
+    {
+        m_uiGushingWoundTimer   = urand(5000, 10000);
+        m_uiHowlingScreechTimer = urand(12000, 15000);
+        m_uiStrikeTimer         = urand(10000, 11000);
+    }
+
+    void JustDied(Unit* pKiller)
+    {
+        if (m_pInstance)
+        {
+            if (Creature* pBoss = m_pInstance->GetSingleCreatureFromStorage(m_pInstance->GetData(TYPE_EREKEM) != DONE ? NPC_EREKEM : NPC_ARAKKOA))
+            {
+                if (!pBoss->isAlive())
+                    return;
+
+                ((boss_erekemAI*)pBoss->AI())->GuardianJustDied();
+            }
+        }
+    }
+
+    void UpdateAI(const uint32 uiDiff)
+    {
+        // Return since we have no target
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+            return;
+
+        if (m_uiGushingWoundTimer < uiDiff)
+        {
+            if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_GUSHING_WOUND) == CAST_OK)
+                m_uiGushingWoundTimer = urand(30000, 32000);
+        }
+        else
+            m_uiGushingWoundTimer -= uiDiff;
+
+        if (m_uiHowlingScreechTimer < uiDiff)
+        {
+            if (DoCastSpellIfCan(m_creature, SPELL_HOWLING_SCREECH) == CAST_OK)
+                m_uiHowlingScreechTimer = urand(24000, 30000);
+        }
+        else
+            m_uiHowlingScreechTimer -= uiDiff;
+
+        if (m_uiStrikeTimer < uiDiff)
+        {
+            if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_STRIKE) == CAST_OK)
+                m_uiStrikeTimer = urand(15000, 16000);
+        }
+        else
+            m_uiStrikeTimer -= uiDiff;
+
+        DoMeleeAttackIfReady();
+    }
+};
+
+CreatureAI* GetAI_npc_erekem_guard(Creature* pCreature)
+{
+    return new npc_erekem_guardAI (pCreature);
+}
+
 void AddSC_boss_erekem()
 {
     Script* pNewScript;
@@ -100,5 +250,10 @@ void AddSC_boss_erekem()
     pNewScript = new Script;
     pNewScript->Name = "boss_erekem";
     pNewScript->GetAI = &GetAI_boss_erekem;
+    pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "npc_erekem_guard";
+    pNewScript->GetAI = &GetAI_npc_erekem_guard;
     pNewScript->RegisterSelf();
 }

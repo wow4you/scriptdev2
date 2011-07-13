@@ -216,7 +216,12 @@ struct MANGOS_DLL_DECL npc_teleportation_portalAI : public ScriptedAI
         {
             if (m_pInstance && m_pInstance->GetCurrentPortalNumber() == 18)
             {
-                m_creature->SummonCreature(NPC_CYANIGOSA, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 600*IN_MILLISECONDS);
+                if (Creature* pCyanigosa = m_creature->SummonCreature(NPC_CYANIGOSA, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 600*IN_MILLISECONDS))
+                {
+                    // ToDo: set boss to jump movement
+                    pCyanigosa->GetMotionMaster()->MovePoint(0, fCyanigosaMoveLoc[0], fCyanigosaMoveLoc[1], fCyanigosaMoveLoc[2], false);
+                    pCyanigosa->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
+                }
             }
             else
             {
@@ -265,11 +270,13 @@ struct MANGOS_DLL_DECL npc_teleportation_portalAI : public ScriptedAI
             case NPC_AZURE_CAPTAIN:
                 DoScriptText(EMOTE_DRAGONFLIGHT_PORTAL, pSummoned);
                 m_lMobSet.insert(pSummoned->GetObjectGuid());
+                pSummoned->GetMotionMaster()->MovePoint(1, fAttackPositionLoc[0], fAttackPositionLoc[1], fAttackPositionLoc[2]);
                 break;
             case NPC_AZURE_RAIDER:
             case NPC_AZURE_SORCEROR:
             case NPC_AZURE_STALKER:
                 m_lMobSet.insert(pSummoned->GetObjectGuid());
+                pSummoned->GetMotionMaster()->MovePoint(1, fAttackPositionLoc[0], fAttackPositionLoc[1], fAttackPositionLoc[2]);
                 return;
             case NPC_AZURE_SABOTEUR:
             {
@@ -290,27 +297,57 @@ struct MANGOS_DLL_DECL npc_teleportation_portalAI : public ScriptedAI
 
     void SummonedMovementInform(Creature* pSummoned, uint32 uiMotionType, uint32 uiPointId)
     {
-        if (uiMotionType != POINT_MOTION_TYPE && pSummoned->GetEntry() != NPC_AZURE_SABOTEUR)
+        if (uiMotionType != POINT_MOTION_TYPE)
             return;
 
         if (uiPointId == 1)
         {
-            pSummoned->CastSpell(pSummoned, SPELL_SHIELD_DISRUPTION, false);
-            if (m_pInstance)
+            if (pSummoned->GetEntry() == NPC_AZURE_SABOTEUR)
             {
-                if (const BossInformation* pData = m_pInstance->GetBossInformation())
-                {
-                    if (Creature* pBoss = m_pInstance->GetSingleCreatureFromStorage(m_pInstance->GetData(pData->uiType) != DONE ? pData->uiEntry : pData->uiGhostEntry))
-                    {
-                        m_pInstance->UpdateCellForBoss(pData->uiEntry);
-                        if (pData->iSayEntry)
-                            DoScriptText(pData->iSayEntry, pBoss);
+                pSummoned->CastSpell(pSummoned, SPELL_SHIELD_DISRUPTION, false);
+                pSummoned->ForcedDespawn(3000);
 
-                        // TODO, adds for Erekem? Opening their Cells? Reset flags on FAIL?
-                        pBoss->GetMotionMaster()->MovePoint(1, pData->fX, pData->fY, pData->fZ);
-                        pBoss->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
+                if (m_pInstance)
+                {
+                    if (const BossInformation* pData = m_pInstance->GetBossInformation())
+                    {
+                        if (Creature* pBoss = m_pInstance->GetSingleCreatureFromStorage(m_pInstance->GetData(pData->uiType) != DONE ? pData->uiEntry : pData->uiGhostEntry))
+                        {
+                            m_pInstance->UpdateCellForBoss(pData->uiEntry);
+                            if (pData->iSayEntry)
+                                DoScriptText(pData->iSayEntry, pBoss);
+
+                            pBoss->GetMotionMaster()->MovePoint(1, pData->fX, pData->fY, pData->fZ);
+                            pBoss->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
+
+                            // Handle Erekem guards
+                            if (pData->uiEntry == NPC_EREKEM)
+                            {
+                                GUIDList lAddGuids;
+                                if (m_pInstance)
+                                    m_pInstance->GetErekemGuardList(lAddGuids);
+
+                                float m_fMovePositionX = pData->fX - 5.0f;
+                                for (GUIDList::const_iterator itr = lAddGuids.begin(); itr != lAddGuids.end(); ++itr)
+                                {
+                                    Creature* pAdd = m_pInstance->instance->GetCreature(*itr);
+                                    if (pAdd && pAdd->isAlive())
+                                    {
+                                        pAdd->GetMotionMaster()->MovePoint(1, m_fMovePositionX, pData->fY, pData->fZ);
+                                        pAdd->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
+                                        m_fMovePositionX += 10.0f;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+            }
+            else
+            {
+                // cast destroy seal spell if reached the door
+                pSummoned->GetMotionMaster()->MovementExpired();
+                pSummoned->CastSpell(pSummoned, SPELL_DESTROY_DOOR_SEAL, false);
             }
         }
     }
@@ -395,7 +432,10 @@ bool EffectDummyCreature_npc_teleportation_portal(Unit* pCaster, uint32 uiSpellI
     if (uiSpellId == SPELL_PORTAL_PERIODIC && uiEffIndex == EFFECT_INDEX_0)
     {
         if (instance_violet_hold* pInstance = (instance_violet_hold*)pCreatureTarget->GetInstanceData())
-            pCreatureTarget->SummonCreature(pInstance->GetRandomMobForNormalPortal(), 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 600*IN_MILLISECONDS);
+        {
+            if (Creature* pTemp = pCreatureTarget->SummonCreature(pInstance->GetRandomMobForNormalPortal(), 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 600*IN_MILLISECONDS))
+                pTemp->GetMotionMaster()->MovePoint(1, fAttackPositionLoc[0], fAttackPositionLoc[1], fAttackPositionLoc[2]);
+        }
 
         //always return true when we are handling this spell and effect
         return true;

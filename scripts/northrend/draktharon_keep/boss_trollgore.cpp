@@ -222,7 +222,7 @@ void AddSC_boss_trollgore()
     pNewScript->GetAI = &GetAI_boss_trollgore;
     pNewScript->RegisterSelf();
 
-     pNewScript = new Script;
+    pNewScript = new Script;
     pNewScript->Name = "npc_trollgore_summon_trigger";
     pNewScript->GetAI = &GetAI_npc_trollgore_summon_trigger;
     pNewScript->RegisterSelf();

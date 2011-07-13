@@ -29,6 +29,10 @@ instance_violet_hold::instance_violet_hold(Map* pMap) : ScriptedInstance(pMap),
     m_uiWorldStateSealCount(100),
     m_uiWorldStatePortalCount(0),
 
+    m_bIsVoidDance(false),
+    m_bIsDefenseless(false),
+    m_bIsDehydratation(false),
+
     m_uiPortalId(0),
     m_uiPortalTimer(0),
     m_uiMaxCountPortalLoc(0)
@@ -54,6 +58,10 @@ void instance_violet_hold::ResetAll()
     UpdateWorldState(false);
     CallGuards(true);
     SetIntroPortals(false);
+    SetActivationCrystals(true);
+
+    // open instance door
+    DoUseDoorOrButton(GO_PRISON_SEAL_DOOR);
 
     for (std::vector<BossSpawn*>::const_iterator itr = m_vRandomBosses.begin(); itr != m_vRandomBosses.end(); ++itr)
     {
@@ -98,6 +106,9 @@ void instance_violet_hold::OnCreatureCreate(Creature* pCreature)
         case NPC_HOLD_GUARD:
             m_lGuardsList.push_back(pCreature->GetObjectGuid());
             return;
+        case NPC_ICHORON_SUMMON_TARGET:
+            m_lIchoronTargetsList.push_back(pCreature->GetObjectGuid());
+            return;
 
         case NPC_ARAKKOA:
         case NPC_VOID_LORD:
@@ -140,6 +151,9 @@ void instance_violet_hold::OnObjectCreate(GameObject* pGo)
             return;
         case GO_CELL_EREKEM_GUARD_R:
             m_mBossToCellMap.insert(BossToCellMap::value_type(NPC_EREKEM, pGo->GetObjectGuid()));
+            return;
+        case GO_PRISON_CRYSTAL:
+            m_lCrystalList.push_back(pGo->GetObjectGuid());
             return;
 
         case GO_INTRO_CRYSTAL:
@@ -211,7 +225,9 @@ void instance_violet_hold::SetData(uint32 uiType, uint32 uiData)
                 case IN_PROGRESS:
                     DoUseDoorOrButton(GO_PRISON_SEAL_DOOR);
                     UpdateWorldState();
+                    SetActivationCrystals();
                     m_uiPortalId = urand(0, 2);
+                    m_bIsDefenseless = true;
                     m_uiPortalTimer = 15000;
                     break;
                 case FAIL:
@@ -220,6 +236,7 @@ void instance_violet_hold::SetData(uint32 uiType, uint32 uiData)
                     break;
                 case DONE:
                     UpdateWorldState(false);
+                    DoUseDoorOrButton(GO_PRISON_SEAL_DOOR);
                     break;
                 case SPECIAL:
                     break;
@@ -229,6 +246,21 @@ void instance_violet_hold::SetData(uint32 uiType, uint32 uiData)
         }
         case TYPE_SEAL:
             m_auiEncounter[1] = uiData;
+            if (uiData == SPECIAL)
+            {
+                --m_uiWorldStateSealCount;
+                DoUpdateWorldState(WORLD_STATE_SEAL, m_uiWorldStateSealCount);
+
+                // set achiev to failed
+                if (m_bIsDefenseless)
+                    m_bIsDefenseless = false;
+
+                if (!m_uiWorldStateSealCount)
+                {
+                    SetData(TYPE_MAIN, FAIL);
+                    SetData(TYPE_SEAL, NOT_STARTED);
+                }
+            }
             break;
         case TYPE_PORTAL:
         {
@@ -247,36 +279,54 @@ void instance_violet_hold::SetData(uint32 uiType, uint32 uiData)
         case TYPE_LAVANTHOR:
             if (uiData == DONE)
                 m_uiPortalTimer = 35000;
+            else if (uiData == FAIL)
+                SetData(TYPE_MAIN, FAIL);
             if (m_auiEncounter[3] != DONE)                  // Keep the DONE-information stored
                 m_auiEncounter[3] = uiData;
             break;
         case TYPE_MORAGG:
             if (uiData == DONE)
                 m_uiPortalTimer = 35000;
+            else if (uiData == FAIL)
+                SetData(TYPE_MAIN, FAIL);
             if (m_auiEncounter[4] != DONE)                  // Keep the DONE-information stored
                 m_auiEncounter[4] = uiData;
             break;
         case TYPE_EREKEM:
             if (uiData == DONE)
                 m_uiPortalTimer = 35000;
+            else if (uiData == FAIL)
+                SetData(TYPE_MAIN, FAIL);
             if (m_auiEncounter[5] != DONE)                  // Keep the DONE-information stored
                 m_auiEncounter[5] = uiData;
             break;
         case TYPE_ICHORON:
             if (uiData == DONE)
                 m_uiPortalTimer = 35000;
+            else if (uiData == IN_PROGRESS)
+                m_bIsDehydratation = true;
+            else if (uiData == SPECIAL)
+                m_bIsDehydratation = false;
+            else if (uiData == FAIL)
+                SetData(TYPE_MAIN, FAIL);
             if (m_auiEncounter[6] != DONE)                  // Keep the DONE-information stored
                 m_auiEncounter[6] = uiData;
             break;
         case TYPE_XEVOZZ:
             if (uiData == DONE)
                 m_uiPortalTimer = 35000;
+            else if (uiData == FAIL)
+                SetData(TYPE_MAIN, FAIL);
             if (m_auiEncounter[7] != DONE)                  // Keep the DONE-information stored
                 m_auiEncounter[7] = uiData;
             break;
         case TYPE_ZURAMAT:
             if (uiData == DONE)
                 m_uiPortalTimer = 35000;
+            else if (uiData == IN_PROGRESS)
+                m_bIsVoidDance = true;
+            else if (uiData == FAIL)
+                SetData(TYPE_MAIN, FAIL);
             if (m_auiEncounter[8] != DONE)                  // Keep the DONE-information stored
                 m_auiEncounter[8] = uiData;
             break;
@@ -285,6 +335,8 @@ void instance_violet_hold::SetData(uint32 uiType, uint32 uiData)
                 m_auiEncounter[9] = uiData;
             if (uiData == DONE)
                 SetData(TYPE_MAIN, DONE);
+            else if (uiData == FAIL)
+                SetData(TYPE_MAIN, FAIL);
             break;
         default:
             return;
@@ -487,14 +539,47 @@ void instance_violet_hold::ProcessActivationCrystal(Unit* pUser, bool bIsIntro)
     {
         pSummon->CastSpell(pSummon, SPELL_DEFENSE_SYSTEM_VISUAL, true);
 
-        // TODO: figure out how the rest work
-        // NPC's NPC_DEFENSE_DUMMY_TARGET are probably channeling some spell to the defense system
+        if(bIsIntro)
+            pSummon->CastSpell(pSummon, SPELL_ARCANE_LIGHTNING_INTR, true);
+        else
+        {
+            pSummon->CastSpell(pSummon, SPELL_ARCANE_LIGHTNING, true);
+            m_bIsDefenseless = false;
+        }
     }
 
     if (bIsIntro)
         DoUseDoorOrButton(GO_INTRO_CRYSTAL);
+}
 
-    // else, kill (and despawn?) certain trash mobs. Also boss affected, but not killed.
+void instance_violet_hold::SetActivationCrystals(bool bIsReset /* = false */)
+{
+    for (GUIDList::const_iterator itr = m_lCrystalList.begin(); itr != m_lCrystalList.end(); ++itr)
+    {
+        if (GameObject* pCrystal = instance->GetGameObject(*itr))
+        {
+            if (!bIsReset)
+                pCrystal->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NO_INTERACT);
+            else
+                pCrystal->SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_NO_INTERACT);
+        }
+    }
+}
+
+bool instance_violet_hold::CheckAchievementCriteriaMeet(uint32 uiCriteriaId, Player const* pSource, Unit const* pTarget, uint32 uiMiscValue1 /* = 0*/)
+{
+    switch (uiCriteriaId)
+    {
+        case ACHIEV_CRIT_DEFENSELES:
+            return m_bIsDefenseless;
+        case ACHIEV_CRIT_DEHYDRATATION:
+            return m_bIsDehydratation;
+        case ACHIEV_CRIT_VOID_DANCE:
+            return m_bIsVoidDance;
+
+        default:
+            return false;
+    }
 }
 
 uint32 instance_violet_hold::GetRandomPortalEliteEntry()
@@ -613,6 +698,10 @@ void instance_violet_hold::OnCreatureDeath(Creature* pCreature)
             break;
         case NPC_CYANIGOSA:
             SetData(TYPE_CYANIGOSA, DONE);
+            break;
+        case NPC_VOID_SENTRY:
+            if (GetData(TYPE_ZURAMAT) == IN_PROGRESS)
+                m_bIsVoidDance = false;
             break;
     }
 }
