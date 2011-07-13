@@ -1296,6 +1296,7 @@ UPDATE creature_template SET ScriptName='npc_teleportation_portal' WHERE entry I
 UPDATE creature_template SET ScriptName='boss_ichoron' WHERE entry IN (29313,32234);
 UPDATE creature_template SET ScriptName='boss_erekem' WHERE entry IN (29315,32226);
 UPDATE creature_template SET ScriptName='npc_erekem_guard' WHERE entry IN (29395,32228);
+UPDATE creature_template SET ScriptName='npc_ichoron_summon_trigger' WHERE entry=29326;
 
 /* WAILING CAVERNS */
 UPDATE instance_template SET ScriptName='instance_wailing_caverns' WHERE map=43;

@@ -17,7 +17,7 @@
 /* ScriptData
 SDName: boss_ichoron
 SD%Complete: 50
-SDComment: Water Globule event NYI
+SDComment: Water Globule event NYI (custom changes)
 SDCategory: Violet Hold
 EndScriptData */
 
@@ -55,6 +55,8 @@ enum
 
     SPELL_MERGE                 = 54269,                // used by globules
     SPELL_WATER_GLOBULE_TRANS   = 54268,
+
+    POINT_ID_ICHORON            = 0
 };
 
 static const uint32 aWaterGlobuleSpells[5] = {SPELL_WATER_GLOBULE_SPAWN_1, SPELL_WATER_GLOBULE_SPAWN_2, SPELL_WATER_GLOBULE_SPAWN_3, SPELL_WATER_GLOBULE_SPAWN_4, SPELL_WATER_GLOBULE_SPAWN_5};
@@ -65,7 +67,6 @@ struct MANGOS_DLL_DECL boss_ichoronAI : public ScriptedAI
     {
         m_pInstance = (instance_violet_hold*)pCreature->GetInstanceData();
         m_bIsRegularMode = pCreature->GetMap()->IsRegularDifficulty();
-
         Reset();
     }
 
@@ -75,12 +76,16 @@ struct MANGOS_DLL_DECL boss_ichoronAI : public ScriptedAI
     uint32 m_uiWaterBoltVolleyTimer;
     uint32 m_uiWaterBlastTimer;
     bool m_bIsFrenzy;
+    uint32 m_uiBubbleTimer;
 
     void Reset() override
     {
         m_uiWaterBoltVolleyTimer = urand(10000, 12000);
         m_uiWaterBlastTimer      = 10000;
         m_bIsFrenzy              = false;
+        m_uiBubbleTimer          = 0;
+        m_creature->SetVisibility(VISIBILITY_ON);
+        m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
     }
 
     void Aggro(Unit* /*pWho*/) override
@@ -112,6 +117,55 @@ struct MANGOS_DLL_DECL boss_ichoronAI : public ScriptedAI
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
+
+        if (m_uiBubbleTimer)
+        {
+            if (m_uiBubbleTimer <= uiDiff)
+            {
+                m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                m_creature->SetVisibility(VISIBILITY_ON);
+
+                if (m_creature->GetHealthPercent() > 25.0f)
+                {
+                    DoCastSpellIfCan(m_creature, SPELL_PROTECTIVE_BUBBLE);
+                    DoScriptText(SAY_SHIELD, m_creature);
+                }
+
+                m_uiBubbleTimer = 0;
+            }
+            else
+                m_uiBubbleTimer -= uiDiff;
+
+            // return if boss is in drained state
+            return;
+        }
+        else if (!m_creature->HasAura(SPELL_PROTECTIVE_BUBBLE) && !m_bIsFrenzy)
+        {
+            DoCastSpellIfCan(m_creature, SPELL_DRAINED, CAST_TRIGGERED);
+            DoCastSpellIfCan(m_creature, SPELL_SPLASH, CAST_TRIGGERED);
+            DoScriptText(SAY_SHATTERING, m_creature);
+
+            // there should be 10 spawns - so each target spawns 2 globules
+            // Not sure if this is right!
+            GuidList lAddGuids;
+            if (m_pInstance)
+                m_pInstance->GetIchoronTriggerList(lAddGuids);
+
+            for (GuidList::const_iterator itr = lAddGuids.begin(); itr != lAddGuids.end(); ++itr)
+            {
+                if (Creature* pTarget = m_pInstance->instance->GetCreature(*itr))
+                {
+                    pTarget->CastSpell(pTarget, SPELL_WATER_GLOBULE_SPAWN_1, true);
+                    pTarget->CastSpell(pTarget, SPELL_WATER_GLOBULE_SPAWN_2, true);
+                }
+            }
+
+            // remove some hp from boss and set it unselectable
+            m_creature->SetHealth(m_creature->GetHealth() - m_creature->GetMaxHealth() * 0.3f);
+            m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+            m_creature->SetVisibility(VISIBILITY_OFF);
+            m_uiBubbleTimer = 15000;
+        }
 
         if (m_uiWaterBlastTimer < uiDiff)
         {
@@ -150,6 +204,64 @@ CreatureAI* GetAI_boss_ichoron(Creature* pCreature)
     return new boss_ichoronAI(pCreature);
 }
 
+// Small helper script to handle summoned adds
+struct MANGOS_DLL_DECL npc_ichoron_summon_triggerAI : public ScriptedAI
+{
+    npc_ichoron_summon_triggerAI(Creature* pCreature) : ScriptedAI(pCreature)
+    {
+        m_pInstance = (instance_violet_hold*)pCreature->GetInstanceData();
+    }
+
+    instance_violet_hold* m_pInstance;
+
+    void Reset() {}
+    void MoveInLineOfSight(Unit* pWho) {}
+    void AttackStart(Unit* pWho) {}
+    void UpdateAI(const uint32 uiDiff) {}
+
+    void JustSummoned(Creature* pSummoned)
+    {
+        pSummoned->CastSpell(pSummoned, SPELL_WATER_GLOBULE, false);
+
+        if (m_pInstance)
+        {
+            if (Creature* pBoss = m_pInstance->GetSingleCreatureFromStorage(m_pInstance->GetData(TYPE_ICHORON) != DONE ? NPC_ICHORON : NPC_SWIRLING))
+            {
+                if (!pBoss->isAlive())
+                    return;
+
+                pSummoned->GetMotionMaster()->MovePoint(POINT_ID_ICHORON, pBoss->GetPositionX(), pBoss->GetPositionY(), pBoss->GetPositionZ());
+            }
+        }
+    }
+
+    void SummonedMovementInform(Creature* pSummoned, uint32 uiMotionType, uint32 uiPointId)
+    {
+        if (uiMotionType != POINT_MOTION_TYPE || uiPointId != POINT_ID_ICHORON)
+            return;
+
+        if (m_pInstance)
+        {
+            if (Creature* pBoss = m_pInstance->GetSingleCreatureFromStorage(m_pInstance->GetData(TYPE_ICHORON) != DONE ? NPC_ICHORON : NPC_SWIRLING))
+            {
+                if (!pBoss->isAlive())
+                    return;
+
+                m_pInstance->SetData(TYPE_ICHORON, SPECIAL);
+
+                // despawn globule and modify boss hp
+                pBoss->SetHealth(pBoss->GetHealth() + pBoss->GetMaxHealth() * 0.03f);
+                pSummoned->ForcedDespawn();
+            }
+        }
+    }
+};
+
+CreatureAI* GetAI_npc_ichoron_summon_trigger(Creature* pCreature)
+{
+    return new npc_ichoron_summon_triggerAI(pCreature);
+}
+
 void AddSC_boss_ichoron()
 {
     Script* pNewScript;
@@ -157,5 +269,10 @@ void AddSC_boss_ichoron()
     pNewScript = new Script;
     pNewScript->Name = "boss_ichoron";
     pNewScript->GetAI = &GetAI_boss_ichoron;
+    pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "npc_ichoron_summon_trigger";
+    pNewScript->GetAI = &GetAI_npc_ichoron_summon_trigger;
     pNewScript->RegisterSelf();
 }
