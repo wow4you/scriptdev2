@@ -37,6 +37,7 @@ enum
 
     SPELL_DRAINED               = 59820,
     SPELL_SPLASH                = 59516,        // knockback all players when drained
+    SPELL_MERGE                 = 54269,        // used by globules - unk script effect
     SPELL_FRENZY                = 54312,
     SPELL_FRENZY_H              = 59522,
     SPELL_PROTECTIVE_BUBBLE     = 54306,
@@ -244,9 +245,10 @@ struct MANGOS_DLL_DECL npc_ichoron_summon_triggerAI : public ScriptedAI
 
                 m_pInstance->SetData(TYPE_ICHORON, SPECIAL);
 
-                // despawn globule and modify boss hp
+                // despawn globule and modify boss hp - workaround because of the missing script effect of the spell
+                pSummoned->CastSpell(pSummoned, SPELL_MERGE, false);
                 pBoss->SetHealth(pBoss->GetHealth() + pBoss->GetMaxHealth() * 0.03f);
-                pSummoned->ForcedDespawn();
+                pSummoned->ForcedDespawn(2000);
             }
         }
     }
