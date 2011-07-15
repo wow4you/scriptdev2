@@ -1299,6 +1299,9 @@ DELETE FROM scripted_areatrigger WHERE entry=5140;
 INSERT INTO scripted_areatrigger VALUES (5140,'at_svala_intro');
 UPDATE creature_template SET ScriptName='boss_ymiron' WHERE entry=26861;
 UPDATE instance_template SET ScriptName='instance_pinnacle' WHERE map=575;
+DELETE FROM scripted_event_id WHERE id=17841;
+INSERT INTO scripted_event_id VALUES
+(17841,'event_call_flames');
 
 /* VAULT OF ARCHAVON */
 

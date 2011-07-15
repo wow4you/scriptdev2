@@ -45,6 +45,9 @@ enum
 
     NPC_SVALA_SORROW            = 26668,
     NPC_ARTHAS_IMAGE            = 29280,
+    NPC_CHANNELER               = 27281,
+    NPC_RITUAL_TARGET           = 27327,
+    NPC_SCOURGE_HULK            = 26555,        // used to check the achiev
 
     SPELL_ARTHAS_VISUAL         = 54134,
 
@@ -53,10 +56,19 @@ enum
     SPELL_TRANSFORMING_FLOATING = 54140,
     SPELL_TRANSFORMING_CHANNEL  = 54142,
 
-    SPELL_RITUAL_OF_SWORD       = 48276,
-    SPELL_CALL_FLAMES           = 48258,
+    SPELL_RITUAL_OF_SWORD       = 48276,        // teleports the boss - casts 54159 on boss (disarm)
+    SPELL_RITUAL_STRIKE         = 48331,        // damage spell - has script target - 27327
+    SPELL_CALL_FLAMES           = 48258,        // sends script event 17841
     SPELL_SINISTER_STRIKE       = 15667,
-    SPELL_SINISTER_STRIKE_H     = 59409
+    SPELL_SINISTER_STRIKE_H     = 59409,
+
+    SPELL_SUMMON_CHANNELER_1    = 48271,
+    SPELL_SUMMON_CHANNELER_2    = 48274,
+    SPELL_SUMMON_CHANNELER_3    = 48275,
+
+    // spells used by channelers
+    SPELL_PARALIZE              = 48278,        // should apply effect 48267
+    SPELL_SHADOWS_IN_THE_DARK   = 59407
 };
 
 /*######
@@ -67,13 +79,13 @@ struct MANGOS_DLL_DECL boss_svalaAI : public ScriptedAI
 {
     boss_svalaAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
+        m_pInstance = (instance_pinnacle*)pCreature->GetInstanceData();
         m_bIsRegularMode = pCreature->GetMap()->IsRegularDifficulty();
         m_bIsIntroDone = false;
         Reset();
     }
 
-    ScriptedInstance* m_pInstance;
+    instance_pinnacle* m_pInstance;
     bool m_bIsRegularMode;
 
     Creature* pArthas;
@@ -82,12 +94,20 @@ struct MANGOS_DLL_DECL boss_svalaAI : public ScriptedAI
     uint32 m_uiIntroTimer;
     uint32 m_uiIntroCount;
 
+    uint32 m_uiSinisterStrikeTimer;
+    uint32 m_uiCallFlamesTimer;
+    uint32 m_uiSacrificeTimer;
+
     void Reset()
     {
         pArthas = NULL;
 
         m_uiIntroTimer = 2500;
         m_uiIntroCount = 0;
+
+        m_uiSinisterStrikeTimer = urand(10000,20000);
+        m_uiCallFlamesTimer     = urand(15000,25000);
+        m_uiSacrificeTimer      = 20000;
 
         if (m_creature->isAlive() && m_pInstance && m_pInstance->GetData(TYPE_SVALA) > IN_PROGRESS)
         {
@@ -140,6 +160,14 @@ struct MANGOS_DLL_DECL boss_svalaAI : public ScriptedAI
             pArthas = pSummoned;
             pSummoned->SetFacingToObject(m_creature);
         }
+        else if (pSummoned->GetEntry() == NPC_CHANNELER)
+        {
+            if (!m_bIsRegularMode)
+                pSummoned->CastSpell(pSummoned, SPELL_SHADOWS_IN_THE_DARK, true);
+
+            // ToDo: fix this spell target and effect
+            //pSummoned->CastSpell(m_creature, SPELL_PARALIZE, true);
+        }
     }
 
     void SummonedCreatureDespawn(Creature* pDespawned)
@@ -157,6 +185,19 @@ struct MANGOS_DLL_DECL boss_svalaAI : public ScriptedAI
 
             m_creature->UpdateEntry(NPC_SVALA_SORROW);
         }
+        // cast ritual strike after starting the ritual
+        else if (pSpell->Id == SPELL_RITUAL_OF_SWORD)
+            DoCastSpellIfCan(m_creature, SPELL_RITUAL_STRIKE, CAST_TRIGGERED);
+    }
+
+    void SpellHitTarget(Unit* pTarget, const SpellEntry* pSpell)
+    {
+        // restore movement after ritual is finished
+        if (pTarget->GetEntry() == NPC_RITUAL_TARGET)
+        {
+            m_creature->SetLevitate(false);
+            m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+        }
     }
 
     void KilledUnit(Unit* pVictim)
@@ -167,6 +208,10 @@ struct MANGOS_DLL_DECL boss_svalaAI : public ScriptedAI
             case 1: DoScriptText(SAY_SLAY_2, m_creature); break;
             case 2: DoScriptText(SAY_SLAY_3, m_creature); break;
         }
+
+        // set achiev to true if boss kills a hulk
+        if (pVictim->GetEntry() == NPC_SCOURGE_HULK && m_pInstance)
+            m_pInstance->SetSpecialAchievementCriteria(TYPE_ACHIEV_HULK, true);
     }
 
     void JustDied(Unit* pKiller)
@@ -188,7 +233,7 @@ struct MANGOS_DLL_DECL boss_svalaAI : public ScriptedAI
 
     void UpdateAI(const uint32 uiDiff)
     {
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim() || m_creature->HasAura(SPELL_RITUAL_OF_SWORD))
         {
             if (m_bIsIntroDone)
                 return;
@@ -235,6 +280,49 @@ struct MANGOS_DLL_DECL boss_svalaAI : public ScriptedAI
             return;
         }
 
+        if(m_uiSinisterStrikeTimer < uiDiff)
+        {
+            if (DoCastSpellIfCan(m_creature->getVictim(), m_bIsRegularMode ? SPELL_SINISTER_STRIKE : SPELL_SINISTER_STRIKE_H) == CAST_OK)
+                m_uiSinisterStrikeTimer = urand(10000, 20000);
+        }
+        else
+            m_uiSinisterStrikeTimer -= uiDiff;
+
+        if(m_uiCallFlamesTimer < uiDiff)
+        {
+            if (DoCastSpellIfCan(m_creature, SPELL_CALL_FLAMES) == CAST_OK)
+                m_uiCallFlamesTimer = urand(15000, 25000);
+        }
+        else
+            m_uiCallFlamesTimer -= uiDiff;
+
+        if(m_uiSacrificeTimer < uiDiff)
+        {
+            if(Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+            {
+                if (DoCastSpellIfCan(pTarget, SPELL_RITUAL_OF_SWORD, CAST_TRIGGERED) == CAST_OK)
+                {
+                    // summon channelers
+                    DoCastSpellIfCan(m_creature, SPELL_SUMMON_CHANNELER_1, CAST_TRIGGERED);
+                    DoCastSpellIfCan(m_creature, SPELL_SUMMON_CHANNELER_2, CAST_TRIGGERED);
+                    DoCastSpellIfCan(m_creature, SPELL_SUMMON_CHANNELER_3, CAST_TRIGGERED);
+
+                    switch(urand(0, 3))
+                    {
+                        case 0: DoScriptText(SAY_SACRIFICE_1, m_creature); break;
+                        case 1: DoScriptText(SAY_SACRIFICE_2, m_creature); break;
+                        case 2: DoScriptText(SAY_SACRIFICE_3, m_creature); break;
+                        case 3: DoScriptText(SAY_SACRIFICE_4, m_creature); break;
+                    }
+
+                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_uiSacrificeTimer = 40000;
+                }
+            }
+        }
+        else
+            m_uiSacrificeTimer -= uiDiff;
+
         DoMeleeAttackIfReady();
     }
 };
@@ -255,17 +343,35 @@ bool AreaTrigger_at_svala_intro(Player* pPlayer, AreaTriggerEntry const* pAt)
     return false;
 }
 
+bool ProcessEventId_event_call_flames(uint32 uiEventId, Object* pSource, Object* pTarget, bool bIsStart)
+{
+    if (instance_pinnacle* pInstance = (instance_pinnacle*)((Creature*)pSource)->GetInstanceData())
+    {
+        if (pInstance->GetData(TYPE_SVALA) != IN_PROGRESS)
+            return false;
+
+        pInstance->DoProcessCallFlamesEvent();
+        return true;
+    }
+    return false;
+}
+
 void AddSC_boss_svala()
 {
-    Script *newscript;
+    Script* pNewScript;
 
-    newscript = new Script;
-    newscript->Name = "boss_svala";
-    newscript->GetAI = &GetAI_boss_svala;
-    newscript->RegisterSelf();
+    pNewScript = new Script;
+    pNewScript->Name = "boss_svala";
+    pNewScript->GetAI = &GetAI_boss_svala;
+    pNewScript->RegisterSelf();
 
-    newscript = new Script;
-    newscript->Name = "at_svala_intro";
-    newscript->pAreaTrigger = &AreaTrigger_at_svala_intro;
-    newscript->RegisterSelf();
+    pNewScript = new Script;
+    pNewScript->Name = "at_svala_intro";
+    pNewScript->pAreaTrigger = &AreaTrigger_at_svala_intro;
+    pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "event_call_flames";
+    pNewScript->pProcessEventId = &ProcessEventId_event_call_flames;
+    pNewScript->RegisterSelf();
 }

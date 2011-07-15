@@ -32,6 +32,22 @@ instance_pinnacle::instance_pinnacle(Map* pMap) : ScriptedInstance(pMap)
 void instance_pinnacle::Initialize()
 {
     memset(&m_auiEncounter, 0, sizeof(m_auiEncounter));
+
+    for (uint8 i = 0; i < MAX_SPECIAL_ACHIEV_CRITS; ++i)
+        m_abAchievCriteria[i] = false;
+}
+
+void instance_pinnacle::OnCreatureCreate(Creature* pCreature)
+{
+    switch(pCreature->GetEntry())
+    {
+        case NPC_YMIRON:
+            m_mNpcEntryGuidStore[pCreature->GetEntry()] = pCreature->GetObjectGuid();
+            break;
+        case NPC_FLAME_BRAZIER:
+            m_lFlameBraziersList.push_back(pCreature->GetObjectGuid());
+            break;
+    }
 }
 
 void instance_pinnacle::OnObjectCreate(GameObject* pGo)
@@ -41,9 +57,15 @@ void instance_pinnacle::OnObjectCreate(GameObject* pGo)
         case GO_DOOR_SKADI:
             if (m_auiEncounter[TYPE_SKADI] == DONE)
                 pGo->SetGoState(GO_STATE_ACTIVE);
-            m_mGoEntryGuidStore[GO_DOOR_SKADI] = pGo->GetObjectGuid();
             break;
+        case GO_DOOR_YMIRON:
+            if (m_auiEncounter[TYPE_YMIRON] == DONE)
+                pGo->SetGoState(GO_STATE_ACTIVE);
+            break;
+        default:
+            return;
     }
+    m_mGoEntryGuidStore[pGo->GetEntry()] = pGo->GetObjectGuid();
 }
 
 void instance_pinnacle::SetData(uint32 uiType, uint32 uiData)
@@ -52,6 +74,9 @@ void instance_pinnacle::SetData(uint32 uiType, uint32 uiData)
     {
         case TYPE_SVALA:
             m_auiEncounter[uiType] = uiData;
+            // set the achiev to false at the beginning of the event
+            if (uiData == IN_PROGRESS)
+                SetSpecialAchievementCriteria(TYPE_ACHIEV_HULK, false);
             break;
         case TYPE_GORTOK:
             m_auiEncounter[uiType] = uiData;
@@ -59,11 +84,12 @@ void instance_pinnacle::SetData(uint32 uiType, uint32 uiData)
         case TYPE_SKADI:
             if (uiData == DONE)
                 DoUseDoorOrButton(GO_DOOR_SKADI);
-
             m_auiEncounter[uiType] = uiData;
             break;
         case TYPE_YMIRON:
             m_auiEncounter[uiType] = uiData;
+            if (uiData == DONE)
+                DoUseDoorOrButton(GO_DOOR_YMIRON);
             break;
         default:
             error_log("SD2: Instance Pinnacle: SetData = %u for type %u does not exist/not implemented.", uiType, uiData);
@@ -113,6 +139,37 @@ void instance_pinnacle::Load(const char* chrIn)
     }
 
     OUT_LOAD_INST_DATA_COMPLETE;
+}
+
+void instance_pinnacle::SetSpecialAchievementCriteria(uint32 uiType, bool bIsMet)
+{
+    if (uiType < MAX_SPECIAL_ACHIEV_CRITS)
+        m_abAchievCriteria[uiType] = bIsMet;
+}
+
+bool instance_pinnacle::CheckAchievementCriteriaMeet(uint32 uiCriteriaId, Player const* pSource, Unit const* pTarget, uint32 uiMiscValue1 /* = 0*/)
+{
+    switch (uiCriteriaId)
+    {
+        case ACHIEV_CRIT_INCREDIBLE_HULK:
+            return m_abAchievCriteria[TYPE_ACHIEV_HULK];
+        case ACHIEV_CRIT_GIRL_LOVES_SKADI:
+            return m_abAchievCriteria[TYPE_ACHIEV_LOVE_SKADI];
+        case ACHIEV_CRIT_KINGS_BANE:
+            return false;
+
+        default:
+            return false;
+    }
+}
+
+void instance_pinnacle::DoProcessCallFlamesEvent()
+{
+    for (GUIDList::const_iterator itr = m_lFlameBraziersList.begin(); itr != m_lFlameBraziersList.end(); ++itr)
+    {
+        if (Creature* pFlame = instance->GetCreature(*itr))
+            pFlame->CastSpell(pFlame, SPELL_BALL_OF_FLAME, true);
+    }
 }
 
 InstanceData* GetInstanceData_instance_pinnacle(Map* pMap)
