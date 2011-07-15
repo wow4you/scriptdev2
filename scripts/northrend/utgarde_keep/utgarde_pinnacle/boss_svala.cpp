@@ -96,7 +96,7 @@ struct MANGOS_DLL_DECL boss_svalaAI : public ScriptedAI
 
     uint32 m_uiSinisterStrikeTimer;
     uint32 m_uiCallFlamesTimer;
-    uint32 m_uiSacrificeTimer;
+    bool m_bHasDoneRitual;
 
     void Reset()
     {
@@ -105,9 +105,9 @@ struct MANGOS_DLL_DECL boss_svalaAI : public ScriptedAI
         m_uiIntroTimer = 2500;
         m_uiIntroCount = 0;
 
-        m_uiSinisterStrikeTimer = urand(10000,20000);
-        m_uiCallFlamesTimer     = urand(15000,25000);
-        m_uiSacrificeTimer      = 20000;
+        m_uiSinisterStrikeTimer = 10000;
+        m_uiCallFlamesTimer     = urand(10000, 15000);
+        m_bHasDoneRitual        = false;
 
         if (m_creature->isAlive() && m_pInstance && m_pInstance->GetData(TYPE_SVALA) > IN_PROGRESS)
         {
@@ -194,10 +194,7 @@ struct MANGOS_DLL_DECL boss_svalaAI : public ScriptedAI
     {
         // restore movement after ritual is finished
         if (pTarget->GetEntry() == NPC_RITUAL_TARGET)
-        {
-            m_creature->SetLevitate(false);
             m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
-        }
     }
 
     void KilledUnit(Unit* pVictim)
@@ -283,7 +280,7 @@ struct MANGOS_DLL_DECL boss_svalaAI : public ScriptedAI
         if(m_uiSinisterStrikeTimer < uiDiff)
         {
             if (DoCastSpellIfCan(m_creature->getVictim(), m_bIsRegularMode ? SPELL_SINISTER_STRIKE : SPELL_SINISTER_STRIKE_H) == CAST_OK)
-                m_uiSinisterStrikeTimer = urand(10000, 20000);
+                m_uiSinisterStrikeTimer = 10000;
         }
         else
             m_uiSinisterStrikeTimer -= uiDiff;
@@ -291,12 +288,13 @@ struct MANGOS_DLL_DECL boss_svalaAI : public ScriptedAI
         if(m_uiCallFlamesTimer < uiDiff)
         {
             if (DoCastSpellIfCan(m_creature, SPELL_CALL_FLAMES) == CAST_OK)
-                m_uiCallFlamesTimer = urand(15000, 25000);
+                m_uiCallFlamesTimer = urand(10000, 15000);
         }
         else
             m_uiCallFlamesTimer -= uiDiff;
 
-        if(m_uiSacrificeTimer < uiDiff)
+        // As from patch notes: Svala Sorrowgrave now casts Ritual of the Sword 1 time during the encounter, down from 3.
+        if(m_creature->GetHealthPercent() < 50.0f && !m_bHasDoneRitual)
         {
             if(Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
             {
@@ -316,12 +314,10 @@ struct MANGOS_DLL_DECL boss_svalaAI : public ScriptedAI
                     }
 
                     m_creature->GetMotionMaster()->MoveIdle();
-                    m_uiSacrificeTimer = 40000;
+                    m_bHasDoneRitual = true;
                 }
             }
         }
-        else
-            m_uiSacrificeTimer -= uiDiff;
 
         DoMeleeAttackIfReady();
     }
