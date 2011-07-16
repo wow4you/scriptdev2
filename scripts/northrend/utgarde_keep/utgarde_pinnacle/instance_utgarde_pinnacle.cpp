@@ -25,6 +25,7 @@ EndScriptData */
 #include "utgarde_pinnacle.h"
 
 instance_pinnacle::instance_pinnacle(Map* pMap) : ScriptedInstance(pMap),
+    m_uiGortokBeastsDead(0),
     m_bIsKingBane(false)
 {
     Initialize();
@@ -42,6 +43,14 @@ void instance_pinnacle::OnCreatureCreate(Creature* pCreature)
 {
     switch(pCreature->GetEntry())
     {
+        case NPC_FURBOLG:
+        case NPC_WORGEN:
+        case NPC_JORMUNGAR:
+        case NPC_RHINO:
+            m_lGortokBeastsList.push_back(pCreature->GetObjectGuid());
+            // no break here -> need to handle both in list and individual these creatures
+        case NPC_GORTOK:
+        case NPC_STATIS_ORB:
         case NPC_BJORN:
         case NPC_HALDOR:
         case NPC_RANULF:
@@ -67,6 +76,8 @@ void instance_pinnacle::OnObjectCreate(GameObject* pGo)
             if (m_auiEncounter[TYPE_YMIRON] == DONE)
                 pGo->SetGoState(GO_STATE_ACTIVE);
             break;
+        case GO_STASIS_GENERATOR:
+            break;
         default:
             return;
     }
@@ -84,7 +95,41 @@ void instance_pinnacle::SetData(uint32 uiType, uint32 uiData)
                 SetSpecialAchievementCriteria(TYPE_ACHIEV_HULK, false);
             break;
         case TYPE_GORTOK:
-            m_auiEncounter[uiType] = uiData;
+            if (uiData != SPECIAL)
+                m_auiEncounter[uiType] = uiData;
+            if (uiData == FAIL)
+            {
+                m_uiGortokBeastsDead = 0;
+
+                if (Creature* pOrb = GetSingleCreatureFromStorage(NPC_STATIS_ORB))
+                    pOrb->ForcedDespawn();
+
+                for (GUIDList::const_iterator itr = m_lGortokBeastsList.begin(); itr != m_lGortokBeastsList.end(); ++itr)
+                {
+                    if (Creature* pBeast = instance->GetCreature(*itr))
+                    {
+                        if (!pBeast->isAlive())
+                            pBeast->Respawn();
+                    }
+                }
+            }
+            else if (uiData == SPECIAL)
+            {
+                ++m_uiGortokBeastsDead;
+
+                if (Creature* pOrb = GetSingleCreatureFromStorage(NPC_STATIS_ORB))
+                {
+                    uint8 m_uiMaxBeasts = instance->IsRegularDifficulty() ? 2 : 4;
+                    // awaken gortok if all subbosses are dead, else get next boss
+                    if (m_uiGortokBeastsDead == m_uiMaxBeasts)
+                    {
+                        pOrb->CastSpell(pOrb, SPELL_AWAKEN_GORTOK, true);
+                        pOrb->ForcedDespawn(10000);
+                    }
+                    else
+                        pOrb->CastSpell(pOrb, SPELL_AWAKEN_SUBBOSS, true);
+                }
+            }
             break;
         case TYPE_SKADI:
             if (uiData == DONE)
@@ -182,6 +227,32 @@ void instance_pinnacle::DoProcessCallFlamesEvent()
     {
         if (Creature* pFlame = instance->GetCreature(*itr))
             pFlame->CastSpell(pFlame, SPELL_BALL_OF_FLAME, true);
+    }
+}
+
+void instance_pinnacle::OnCreatureEvade(Creature* pCreature)
+{
+    switch(pCreature->GetEntry())
+    {
+        case NPC_FURBOLG:
+        case NPC_WORGEN:
+        case NPC_JORMUNGAR:
+        case NPC_RHINO:
+            SetData(TYPE_GORTOK, FAIL);
+            break;
+    }
+}
+
+void instance_pinnacle::OnCreatureDeath(Creature* pCreature)
+{
+    switch(pCreature->GetEntry())
+    {
+        case NPC_FURBOLG:
+        case NPC_WORGEN:
+        case NPC_JORMUNGAR:
+        case NPC_RHINO:
+            SetData(TYPE_GORTOK, SPECIAL);
+            break;
     }
 }
 

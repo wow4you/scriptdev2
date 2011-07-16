@@ -23,10 +23,12 @@ enum
     GO_DOOR_YMIRON                  = 192174,
 
     NPC_FLAME_BRAZIER               = 27273,            // throw flames at players on Svalna event
+    NPC_STATIS_ORB                  = 26086,            // not sure if this is the right one - should it be 26688 ?
     NPC_FURBOLG                     = 26684,
     NPC_WORGEN                      = 26683,
     NPC_JORMUNGAR                   = 26685,
     NPC_RHINO                       = 26686,
+    NPC_GORTOK                      = 26687,
     NPC_YMIRON                      = 26861,
     NPC_BJORN                       = 27303,            // front right
     NPC_HALDOR                      = 27307,            // front left
@@ -40,6 +42,8 @@ enum
     ACHIEV_START_SKADI_ID           = 17726,            // Starts Skadi timed achiev - 1873
 
     SPELL_BALL_OF_FLAME             = 48246,            // spell used by the flame braziers
+    SPELL_AWAKEN_SUBBOSS            = 47669,            // spells for gortok event
+    SPELL_AWAKEN_GORTOK             = 47670,
 };
 
 class MANGOS_DLL_DECL instance_pinnacle : public ScriptedInstance
@@ -50,6 +54,8 @@ class MANGOS_DLL_DECL instance_pinnacle : public ScriptedInstance
         void Initialize();
 
         void OnCreatureCreate(Creature* pCreature);
+        void OnCreatureEvade(Creature* pCreature);
+        void OnCreatureDeath(Creature* pCreature);
         void OnObjectCreate(GameObject* pGo);
 
         void SetData(uint32 uiType, uint32 uiData);
@@ -69,9 +75,12 @@ class MANGOS_DLL_DECL instance_pinnacle : public ScriptedInstance
         bool m_abAchievCriteria[MAX_SPECIAL_ACHIEV_CRITS];
         std::string m_strInstData;
 
+        uint8 m_uiGortokBeastsDead;
+
         bool m_bIsKingBane;
 
         GUIDList m_lFlameBraziersList;
+        GUIDList m_lGortokBeastsList;
 };
 
 #endif
