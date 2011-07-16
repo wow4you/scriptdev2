@@ -23,11 +23,15 @@ enum
     GO_DOOR_YMIRON                  = 192174,
 
     NPC_FLAME_BRAZIER               = 27273,            // throw flames at players on Svalna event
-    NPC_YMIRON                      = 26861,
     NPC_FURBOLG                     = 26684,
     NPC_WORGEN                      = 26683,
     NPC_JORMUNGAR                   = 26685,
     NPC_RHINO                       = 26686,
+    NPC_YMIRON                      = 26861,
+    NPC_BJORN                       = 27303,            // front right
+    NPC_HALDOR                      = 27307,            // front left
+    NPC_RANULF                      = 27308,            // back left
+    NPC_TORGYN                      = 27309,            // back right
 
     ACHIEV_CRIT_INCREDIBLE_HULK     = 7322,             // Svala achiev - 2043
     ACHIEV_CRIT_KINGS_BANE          = 7598,             // Ymiron achiev - 2157
@@ -58,11 +62,14 @@ class MANGOS_DLL_DECL instance_pinnacle : public ScriptedInstance
         bool CheckAchievementCriteriaMeet(uint32 uiCriteriaId, Player const* pSource, Unit const* pTarget, uint32 uiMiscValue1 /* = 0*/);
 
         void DoProcessCallFlamesEvent();
+        void DoProcessKingBaneEvent() { m_bIsKingBane = false; }
 
     private:
         uint32 m_auiEncounter[MAX_ENCOUNTER];
         bool m_abAchievCriteria[MAX_SPECIAL_ACHIEV_CRITS];
         std::string m_strInstData;
+
+        bool m_bIsKingBane;
 
         GUIDList m_lFlameBraziersList;
 };

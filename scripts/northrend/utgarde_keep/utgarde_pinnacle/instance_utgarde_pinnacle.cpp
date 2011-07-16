@@ -24,7 +24,8 @@ EndScriptData */
 #include "precompiled.h"
 #include "utgarde_pinnacle.h"
 
-instance_pinnacle::instance_pinnacle(Map* pMap) : ScriptedInstance(pMap)
+instance_pinnacle::instance_pinnacle(Map* pMap) : ScriptedInstance(pMap),
+    m_bIsKingBane(false)
 {
     Initialize();
 }
@@ -41,6 +42,10 @@ void instance_pinnacle::OnCreatureCreate(Creature* pCreature)
 {
     switch(pCreature->GetEntry())
     {
+        case NPC_BJORN:
+        case NPC_HALDOR:
+        case NPC_RANULF:
+        case NPC_TORGYN:
         case NPC_YMIRON:
             m_mNpcEntryGuidStore[pCreature->GetEntry()] = pCreature->GetObjectGuid();
             break;
@@ -83,13 +88,21 @@ void instance_pinnacle::SetData(uint32 uiType, uint32 uiData)
             break;
         case TYPE_SKADI:
             if (uiData == DONE)
+            {
                 DoUseDoorOrButton(GO_DOOR_SKADI);
+
+                // remove exploit check flag on skadi death
+                if (Creature* pYmiron = GetSingleCreatureFromStorage(NPC_YMIRON))
+                    pYmiron->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+            }
             m_auiEncounter[uiType] = uiData;
             break;
         case TYPE_YMIRON:
             m_auiEncounter[uiType] = uiData;
             if (uiData == DONE)
                 DoUseDoorOrButton(GO_DOOR_YMIRON);
+            else if (uiData == IN_PROGRESS)
+                m_bIsKingBane = true;
             break;
         default:
             error_log("SD2: Instance Pinnacle: SetData = %u for type %u does not exist/not implemented.", uiType, uiData);
@@ -156,7 +169,7 @@ bool instance_pinnacle::CheckAchievementCriteriaMeet(uint32 uiCriteriaId, Player
         case ACHIEV_CRIT_GIRL_LOVES_SKADI:
             return m_abAchievCriteria[TYPE_ACHIEV_LOVE_SKADI];
         case ACHIEV_CRIT_KINGS_BANE:
-            return false;
+            return m_bIsKingBane;
 
         default:
             return false;
