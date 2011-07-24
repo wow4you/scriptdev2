@@ -229,12 +229,11 @@ struct MANGOS_DLL_DECL mob_iron_rootsAI : public ScriptedAI
     bool m_bIsRegularMode;
     ScriptedInstance* m_pInstance;
 
-    uint64 m_uiVictimGUID;
+    ObjectGuid m_victimGuid;
     uint32 m_uiCreatureEntry;
 
     void Reset()
     {
-        m_uiVictimGUID = 0;
         m_uiCreatureEntry = m_creature->GetEntry();
     }
 
@@ -242,9 +241,9 @@ struct MANGOS_DLL_DECL mob_iron_rootsAI : public ScriptedAI
     {
         if (uiDamage > m_creature->GetHealth())
         {
-            if (m_uiVictimGUID)
+            if (m_victimGuid)
             {
-                if (Unit* pVictim = m_creature->GetMap()->GetUnit(m_uiVictimGUID))
+                if (Unit* pVictim = m_creature->GetMap()->GetUnit(m_victimGuid))
                 {
                     switch (m_uiCreatureEntry)
                     {
@@ -278,7 +277,7 @@ struct MANGOS_DLL_DECL mob_iron_rootsAI : public ScriptedAI
 
     void JustDied(Unit* Killer)
     {
-        if (Unit* pVictim = m_creature->GetMap()->GetUnit(m_uiVictimGUID))
+        if (Unit* pVictim = m_creature->GetMap()->GetUnit(m_victimGuid))
         {
             switch (m_uiCreatureEntry)
             {
@@ -594,9 +593,9 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
     uint32 m_uiGroundTremorTimer;
 
     uint32 m_uiThreeWaveCheckTimer;
-    uint64 m_uiWaterSpiritGUID;
-    uint64 m_uiStormLasherGUID;
-    uint64 m_uiSnapLasherGUID;
+    ObjectGuid m_waterSpiritGuid;
+    ObjectGuid m_stormLasherGuid;
+    ObjectGuid m_snapLasherGuid;
 
     bool m_bIsBrightleafAlive;
     bool m_bIsIronbranchAlive;
@@ -621,9 +620,6 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
         m_uiNatureBombTimer             = 7000;
         m_uiThreeWaveCheckTimer         = 10000;
         m_uiAchievProgress              = 10000;
-        m_uiWaterSpiritGUID             = 0;
-        m_uiStormLasherGUID             = 0;
-        m_uiSnapLasherGUID              = 0;
 
         m_uiOutroTimer                  = 10000;
         m_uiStep                        = 1;
@@ -815,21 +811,21 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
 
         if (Creature* pSpirit = DoSpawnCreature(NPC_WATER_SPIRIT, 0, 0, 0, 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 15000))
         {
-            m_uiWaterSpiritGUID = pSpirit->GetGUID();
+            m_waterSpiritGuid = pSpirit->GetObjectGuid();
             if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                 pSpirit->AddThreat(pTarget, 1.0f);
         }
 
         if (Creature* pStormLasher = DoSpawnCreature(NPC_STORM_LASHER, 0, 0, 0, 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 15000))
         {
-            m_uiStormLasherGUID = pStormLasher->GetGUID();
+            m_stormLasherGuid = pStormLasher->GetObjectGuid();
             if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                 pStormLasher->AddThreat(pTarget, 1.0f);
         }
 
         if (Creature* pSnapLasher = DoSpawnCreature(NPC_SNAPLASHER, 0, 0, 0, 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 15000))
         {
-            m_uiSnapLasherGUID = pSnapLasher->GetGUID();
+            m_snapLasherGuid = pSnapLasher->GetObjectGuid();
             if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                 pSnapLasher->AddThreat(pTarget, 1.0f);
         }
@@ -867,9 +863,9 @@ struct MANGOS_DLL_DECL boss_freyaAI : public ScriptedAI
             {
                 if (m_uiThreeWaveCheckTimer <= uiDiff)
                 {
-                    Creature* pWaterSpirit = m_pInstance->instance->GetCreature(m_uiWaterSpiritGUID);
-                    Creature* pStormLasher = m_pInstance->instance->GetCreature(m_uiStormLasherGUID);
-                    Creature* pSnapLasher = m_pInstance->instance->GetCreature(m_uiSnapLasherGUID);
+                    Creature* pWaterSpirit = m_pInstance->instance->GetCreature(m_waterSpiritGuid);
+                    Creature* pStormLasher = m_pInstance->instance->GetCreature(m_stormLasherGuid);
+                    Creature* pSnapLasher = m_pInstance->instance->GetCreature(m_snapLasherGuid);
 
                     m_uiThreeWaveCheckTimer = 0;
 

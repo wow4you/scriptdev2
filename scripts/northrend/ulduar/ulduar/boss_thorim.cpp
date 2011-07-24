@@ -619,7 +619,7 @@ struct MANGOS_DLL_DECL boss_thorimAI : public ScriptedAI
     bool m_bIsHardMode;
     uint32 m_uiPreAddsKilled;
 
-    uint64 m_uiSifGUID;
+    ObjectGuid m_sifGuid;
 
     // intro & outro
     bool m_bIsOutro;
@@ -631,7 +631,7 @@ struct MANGOS_DLL_DECL boss_thorimAI : public ScriptedAI
 
     // mob list check
     std::list<Creature*> lIronDwarfes;
-    std::list<uint64> m_lOrbsGUIDList;
+    GUIDList m_lOrbsGuids;
 
     void Reset()
     {
@@ -663,9 +663,9 @@ struct MANGOS_DLL_DECL boss_thorimAI : public ScriptedAI
         m_uiIntroTimer          = 10000;
         m_uiIntroStep           = 1;
         m_bIsOutro              = false;
-        m_uiSifGUID             = 0;
+
         lIronDwarfes.clear();
-        m_lOrbsGUIDList.clear();
+        m_lOrbsGuids.clear();
 
         // exploit check
         m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
@@ -864,13 +864,13 @@ struct MANGOS_DLL_DECL boss_thorimAI : public ScriptedAI
                             if (Creature* pSif = m_creature->SummonCreature(NPC_SIF, m_creature->GetPositionX() + 10, m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetOrientation(), TEMPSUMMON_TIMED_DESPAWN, 700000))
                             {
                                 pSif->setFaction(35);
-                                m_uiSifGUID = pSif->GetGUID();
+                                m_sifGuid = pSif->GetObjectGuid();
                             }
                             ++m_uiIntroStep;
                             m_uiIntroTimer = 9000;
                             break;
                         case 7:
-                            if (Creature* pSif = m_pInstance->instance->GetCreature(m_uiSifGUID))
+                            if (Creature* pSif = m_pInstance->instance->GetCreature(m_sifGuid))
                                 DoScriptText(SAY_SIF_BEGIN, pSif);
                             m_uiPhase = PHASE_BALCONY;
                             m_bIsIntro = false;
@@ -905,7 +905,7 @@ struct MANGOS_DLL_DECL boss_thorimAI : public ScriptedAI
                         DoCast(m_creature, SPELL_TOUTCH_OF_DOMINION);
                     if (m_bIsHardMode)
                     {
-                        if (Creature* Sif = m_pInstance->instance->GetCreature(m_uiSifGUID))
+                        if (Creature* Sif = m_pInstance->instance->GetCreature(m_sifGuid))
                         {
                             Sif->setFaction(14);
                             DoScriptText(SAY_SIF_EVENT, Sif);
@@ -929,7 +929,7 @@ struct MANGOS_DLL_DECL boss_thorimAI : public ScriptedAI
                 if (m_uiHardModeTimer <= uiDiff && m_bIsHardMode)
                 {
                     m_bIsHardMode = false;
-                    if (Creature* Sif = m_pInstance->instance->GetCreature(m_uiSifGUID))
+                    if (Creature* Sif = m_pInstance->instance->GetCreature(m_sifGuid))
                     {
                         if (Sif && Sif->isAlive())
                         {
@@ -1158,7 +1158,7 @@ struct MANGOS_DLL_DECL boss_thorimAI : public ScriptedAI
                         DoScriptText(m_bIsHardMode ? SAY_OUTRO_HARD_1 : SAY_OUTRO_1, m_creature);
                         if (m_bIsHardMode)
                         {
-                            if (Creature* pSif = m_pInstance->instance->GetCreature(m_uiSifGUID))
+                            if (Creature* pSif = m_pInstance->instance->GetCreature(m_sifGuid))
                                 DoCast(pSif, SPELL_STORMHAMMER);
                         }
 
@@ -1168,7 +1168,7 @@ struct MANGOS_DLL_DECL boss_thorimAI : public ScriptedAI
                     case 7:
                         if (m_bIsHardMode)
                         {
-                            if (Creature* Sif = m_pInstance->instance->GetCreature(m_uiSifGUID))
+                            if (Creature* Sif = m_pInstance->instance->GetCreature(m_sifGuid))
                             {
                                 //summon a tentacule
                                 if (Creature* pTentacule = m_creature->SummonCreature(34266, Sif->GetPositionX(), Sif->GetPositionY(), Sif->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN, 7000))
@@ -1231,7 +1231,7 @@ struct MANGOS_DLL_DECL boss_runic_colossusAI : public ScriptedAI
     uint32 m_uiSpellTimer;
     uint32 m_uiRunicBarrierTimer;
     uint32 m_uiSmashTimer;
-    uint64 m_uiSmashTargetGUID;
+    ObjectGuid m_smashTargetGuid;
     bool m_bIsSmash;
     bool m_bMustSmash;
 
@@ -1240,7 +1240,7 @@ struct MANGOS_DLL_DECL boss_runic_colossusAI : public ScriptedAI
         m_uiSpellTimer = urand(5000, 10000);
         m_uiRunicBarrierTimer = 15000;
         m_uiSmashTimer  = 3000;
-        m_uiSmashTargetGUID    = 0;
+
         m_bIsSmash  = false;
         m_bMustSmash = true;
 
@@ -1260,7 +1260,7 @@ struct MANGOS_DLL_DECL boss_runic_colossusAI : public ScriptedAI
         if (pWho->isTargetableForAttack() && pWho->isInAccessablePlaceFor(m_creature) &&
                 !m_bIsSmash && pWho->GetTypeId() == TYPEID_PLAYER && m_creature->IsWithinDistInMap(pWho, 70) && m_creature->IsWithinLOSInMap(pWho))
         {
-            m_uiSmashTargetGUID = pWho->GetGUID();
+            m_smashTargetGuid = pWho->GetObjectGuid();
             m_creature->GetMotionMaster()->MoveIdle();
             m_bIsSmash = true;
         }
@@ -1278,7 +1278,7 @@ struct MANGOS_DLL_DECL boss_runic_colossusAI : public ScriptedAI
         // smash, doesn't work. Spell needs core fix
         if (m_uiSmashTimer < uiDiff && m_bIsSmash && m_bMustSmash)
         {
-            if (Unit* pTarget = m_creature->GetMap()->GetUnit(m_uiSmashTargetGUID))
+            if (Unit* pTarget = m_creature->GetMap()->GetUnit(m_smashTargetGuid))
                 DoCast(pTarget, SPELL_RUNIC_SMASH_DMG);
             m_uiSmashTimer = 10000;
         }

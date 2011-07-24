@@ -184,7 +184,7 @@ struct MANGOS_DLL_DECL boss_ignisAI : public ScriptedAI
     instance_ulduar* m_pInstance;
     bool m_bIsRegularMode;
 
-    std::list<uint64> m_lIronConstructGUIDList;
+    GUIDList m_lIronConstructGuids;
 
     uint32 m_uiBerserkTimer;
     uint32 m_uiFlameJetsTimer;
@@ -201,9 +201,9 @@ struct MANGOS_DLL_DECL boss_ignisAI : public ScriptedAI
         m_uiConstructTimer      = 10000;
 
         // respawn dead constructs
-        if (!m_lIronConstructGUIDList.empty())
+        if (!m_lIronConstructGuids.empty())
         {
-            for (std::list<uint64>::iterator itr = m_lIronConstructGUIDList.begin(); itr != m_lIronConstructGUIDList.end(); ++itr)
+            for (GUIDList::iterator itr = m_lIronConstructGuids.begin(); itr != m_lIronConstructGuids.end(); ++itr)
             {
                 if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                 {
@@ -212,7 +212,7 @@ struct MANGOS_DLL_DECL boss_ignisAI : public ScriptedAI
                 }
             }
         }
-        m_lIronConstructGUIDList.clear();
+        m_lIronConstructGuids.clear();
     }
 
     void JustDied(Unit* pKiller)
@@ -257,7 +257,7 @@ struct MANGOS_DLL_DECL boss_ignisAI : public ScriptedAI
         {
             case SPELL_ACTIVATE_CONSTRUCT_HIT:
                 if (pTarget->GetEntry() == NPC_IRON_CONSTRUCT)
-                    m_lIronConstructGUIDList.push_back(pTarget->GetGUID());
+                    m_lIronConstructGuids.push_back(pTarget->GetObjectGuid());
                 break;
             case SPELL_SCORCH:
             case SPELL_SCORCH_H:

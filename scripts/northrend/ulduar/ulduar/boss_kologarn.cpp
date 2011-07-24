@@ -218,15 +218,14 @@ struct MANGOS_DLL_DECL boss_right_armAI : public ScriptedAI
     uint32 m_uiStone_Grip_Timer;
     uint32 m_uiFreeDamage;
     uint32 m_uiMaxDamage;
-    uint64 m_uiGripTargetGUID[3];
+    ObjectGuid m_aGripTargetuid[3];
     uint8 m_uiMaxTargets;
 
     void Reset()
     {
         m_uiStone_Grip_Timer    = 20000;
         m_uiMaxTargets          = m_bIsRegularMode ? 1 : 3;
-        for (int i = 0; i < m_uiMaxTargets; i++)
-            m_uiGripTargetGUID[i] = 0;
+
         m_uiFreeDamage          = 0;
         m_uiMaxDamage           = m_bIsRegularMode ? 100000 : 480000;
 
@@ -278,7 +277,7 @@ struct MANGOS_DLL_DECL boss_right_armAI : public ScriptedAI
 
         for (int i = 0; i < m_uiMaxTargets; i++)
         {
-            if (Unit* pVictim = m_creature->GetMap()->GetUnit(m_uiGripTargetGUID[i]))
+            if (Unit* pVictim = m_creature->GetMap()->GetUnit(m_aGripTargetuid[i]))
                 pVictim->RemoveAurasDueToSpell(m_bIsRegularMode ? SPELL_STONE_GRIP : SPELL_STONE_GRIP_H);
         }
     }
@@ -293,7 +292,7 @@ struct MANGOS_DLL_DECL boss_right_armAI : public ScriptedAI
             m_uiFreeDamage = 0;
             for (int i = 0; i < m_uiMaxTargets; i++)
             {
-                if (Unit* pVictim = m_creature->GetMap()->GetUnit(m_uiGripTargetGUID[i]))
+                if (Unit* pVictim = m_creature->GetMap()->GetUnit(m_aGripTargetuid[i]))
                     pVictim->RemoveAurasDueToSpell(m_bIsRegularMode ? SPELL_STONE_GRIP : SPELL_STONE_GRIP_H);
             }
         }
@@ -311,7 +310,7 @@ struct MANGOS_DLL_DECL boss_right_armAI : public ScriptedAI
                 if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                 {
                     pTarget->CastSpell(pTarget, m_bIsRegularMode ? SPELL_STONE_GRIP : SPELL_STONE_GRIP_H, true);
-                    m_uiGripTargetGUID[i] = pTarget->GetGUID();
+                    m_aGripTargetuid[i] = pTarget->GetObjectGuid();
                 }
             }
             m_uiStone_Grip_Timer = 30000;

@@ -129,13 +129,12 @@ struct MANGOS_DLL_DECL npc_expedition_commanderAI : public ScriptedAI
 
     bool m_bHasPlayerNear;
     bool m_bIsIntro;
-    uint64 m_uiPlayerGUID;
+    ObjectGuid m_playerGuid;
     uint32 m_uiSpeech_Timer;
     uint32 m_uiIntro_Phase;
 
     void Reset()
     {
-        m_uiPlayerGUID      = 0;
         m_uiSpeech_Timer    = 3000;
         m_bIsIntro          = false;
         m_uiIntro_Phase     = 0;
@@ -155,7 +154,7 @@ struct MANGOS_DLL_DECL npc_expedition_commanderAI : public ScriptedAI
         if (Creature* pTemp = m_pInstance->GetSingleCreatureFromStorage(NPC_RAZORSCALE))
         {
             pTemp->SetInCombatWithZone();
-            if (Unit* pPlayer = m_creature->GetMap()->GetUnit(m_uiPlayerGUID))
+            if (Unit* pPlayer = m_creature->GetMap()->GetUnit(m_playerGuid))
             {
                 pTemp->AddThreat(pPlayer, 0.0f);
                 pTemp->AI()->AttackStart(pPlayer);
@@ -165,7 +164,7 @@ struct MANGOS_DLL_DECL npc_expedition_commanderAI : public ScriptedAI
 
     void BeginRazorscaleEvent(Player* pPlayer)
     {
-        m_uiPlayerGUID      = pPlayer->GetGUID();
+        m_playerGuid      = pPlayer->GetObjectGuid();
         m_bIsIntro          = true;
         m_uiSpeech_Timer    = 3000;
         m_uiIntro_Phase     = 0;
@@ -223,7 +222,7 @@ bool GossipHello_npc_expedition_commander(Player* pPlayer, Creature* pCreature)
     if (pInstance->GetData(TYPE_RAZORSCALE) != DONE)
         pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_START, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
 
-    pPlayer->SEND_GOSSIP_MENU(pPlayer->GetGossipTextId(pCreature), pCreature->GetGUID());
+    pPlayer->SEND_GOSSIP_MENU(pPlayer->GetGossipTextId(pCreature), pCreature->GetObjectGuid());
     return true;
 }
 
@@ -509,7 +508,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
     uint32 m_uiRepairHarpoonTimer;
     uint8 m_uiHarpoonsRepaired;
     uint8 m_uiMaxHarpoons;
-    uint64 m_uiHarpoonsGUID[4];
+    ObjectGuid m_aHarpoonGuid[4];
     uint32 m_uiTimetoground;
     uint32 m_uiStun_Timer;
     bool m_bAirphase;
@@ -533,8 +532,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
         m_uiRepairHarpoonTimer = 53000;
         m_uiHarpoonsRepaired = 0;
         m_uiMaxHarpoons     = m_bIsRegularMode ? 2 : 4;
-        for (int i = 0; i < m_uiMaxHarpoons; i++)
-            m_uiHarpoonsGUID[i] = 0;
+
         m_bAirphase         = false;
         m_bIsGrounded       = false;
         m_bHasBerserk       = false;
@@ -583,7 +581,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
             {
                 if ((*iter))
                 {
-                    m_uiHarpoonsGUID[i] = (*iter)->GetGUID();
+                    m_aHarpoonGuid[i] = (*iter)->GetObjectGuid();
                     i += 1;
                 }
             }
@@ -661,7 +659,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
         // repair harpoons
         if (m_uiRepairHarpoonTimer < uiDiff && m_bAirphase && !m_bIsGrounded && m_uiHarpoonsRepaired <= m_uiMaxHarpoons)
         {
-            if (GameObject* pHarpoon = m_pInstance->instance->GetGameObject(m_uiHarpoonsGUID[m_uiHarpoonsRepaired]))
+            if (GameObject* pHarpoon = m_pInstance->instance->GetGameObject(m_aHarpoonGuid[m_uiHarpoonsRepaired]))
             {
                 pHarpoon->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NO_INTERACT);
                 //pHarpoon->SetUInt32Value(GAMEOBJECT_DISPLAYID, 8245);
@@ -740,7 +738,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
         if (m_uiGround_Cast < uiDiff && m_bIsGrounded)
         {
             if (Creature* pCommander = m_pInstance->GetSingleCreatureFromStorage(NPC_COMMANDER))
-                m_creature->SetUInt64Value(UNIT_FIELD_TARGET, pCommander->GetGUID());
+                m_creature->SetUInt64Value(UNIT_FIELD_TARGET, pCommander->GetObjectGuid());
             m_creature->RemoveAurasDueToSpell(SPELL_STUN);
             DoScriptText(EMOTE_BREATH, m_creature);
             DoCast(m_creature, m_bIsRegularMode ? SPELL_FLAME_BREATH : SPELL_FLAME_BREATH_H);
