@@ -298,7 +298,7 @@ struct MANGOS_DLL_DECL boss_algalonAI : public ScriptedAI
 
         if (m_creature->Attack(pWho, true))
         {
-            m_creature->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
+            m_creature->SetWalk(false);
             m_creature->AddThreat(pWho);
             m_creature->SetInCombatWith(pWho);
             pWho->SetInCombatWith(m_creature);
@@ -585,7 +585,7 @@ struct MANGOS_DLL_DECL boss_algalonAI : public ScriptedAI
                     break;
                 case 3:
                     // make boss kneel
-                    m_creature->SetSplineFlags(SPLINEFLAG_UNKNOWN12);
+                    m_creature->SetStandState(UNIT_STAND_STATE_KNEEL);
                     if (m_bIsDespawned)
                     {
                         DoScriptText(SAY_DESPAWN_1, m_creature);
