@@ -719,7 +719,7 @@
     <ClInclude Include="..\scripts\eastern_kingdoms\karazhan\karazhan.h" />
     <ClInclude Include="..\scripts\eastern_kingdoms\magisters_terrace\magisters_terrace.h" />
     <ClInclude Include="..\scripts\eastern_kingdoms\molten_core\molten_core.h" />
-    <ClCompile Include="..\scripts\eastern_kingdoms\scarlet_enclave\world_map_ebon_hold.h" />
+    <ClInclude Include="..\scripts\eastern_kingdoms\scarlet_enclave\world_map_ebon_hold.h" />
     <ClInclude Include="..\scripts\eastern_kingdoms\scarlet_monastery\scarlet_monastery.h" />
     <ClInclude Include="..\scripts\eastern_kingdoms\scholomance\scholomance.h" />
     <ClInclude Include="..\scripts\eastern_kingdoms\shadowfang_keep\shadowfang_keep.h" />

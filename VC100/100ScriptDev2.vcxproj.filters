@@ -1800,8 +1800,8 @@
     <ClInclude Include="..\scripts\eastern_kingdoms\molten_core\molten_core.h">
       <Filter>scripts\eastern_kingdoms\molten_core</Filter>
     </ClInclude>
-    <ClInclude Include="..\scripts\eastern_kingdoms\molten_core\world_map_ebon_hold.h">
-      <Filter>scripts\eastern_kingdoms\molten_core</Filter>
+    <ClInclude Include="..\scripts\eastern_kingdoms\scarlet_enclave\world_map_ebon_hold.h">
+      <Filter>scripts\eastern_kingdoms\scarlet_enclave</Filter>
     </ClInclude>
     <ClInclude Include="..\scripts\eastern_kingdoms\scarlet_monastery\scarlet_monastery.h">
       <Filter>scripts\eastern_kingdoms\scarlet_monastery</Filter>

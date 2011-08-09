@@ -2,6 +2,8 @@
  * This program is free software licensed under GPL version 2
  * Please see the included DOCS/LICENSE.TXT for more information */
 
+#include "precompiled.h"
+
 #ifndef DEF_EBON_HOLD_H
 #define DEF_EBON_HOLD_H
 
