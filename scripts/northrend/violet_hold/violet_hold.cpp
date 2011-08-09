@@ -218,8 +218,7 @@ struct MANGOS_DLL_DECL npc_teleportation_portalAI : public ScriptedAI
             {
                 if (Creature* pCyanigosa = m_creature->SummonCreature(NPC_CYANIGOSA, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 600*IN_MILLISECONDS))
                 {
-                    // ToDo: set boss to jump movement
-                    pCyanigosa->GetMotionMaster()->MovePoint(0, fCyanigosaMoveLoc[0], fCyanigosaMoveLoc[1], fCyanigosaMoveLoc[2], false);
+                    pCyanigosa->GetMotionMaster()->MoveJump(fCyanigosaMoveLoc[0], fCyanigosaMoveLoc[1], fCyanigosaMoveLoc[2], 10.0f, 25.0f, 0);
                     pCyanigosa->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
                 }
             }
