@@ -973,25 +973,22 @@ struct MANGOS_DLL_DECL boss_icehowlAI : public ScriptedAI
     void JustDied(Unit* /*pKiller*/) override
     {
         if (m_pInstance)
-        {
             m_pInstance->SetData(TYPE_NORTHREND_BEASTS, DONE);
-            m_pInstance->SetData(TYPE_STAGE, 0);
-        }
     }
 
     void MovementInform(uint32 type, uint32 id) override
     {
-        if (!m_pInstance)
+        if (type != POINT_MOTION_TYPE)
             return;
 
         if (id != 1 && m_bMovementStarted)
             m_creature->GetMotionMaster()->MovePoint(1, fPosX, fPosY, fPosZ);
         else
         {
-            m_creature->GetMotionMaster()->MovementExpired();
             m_bMovementStarted = false;
             SetCombatMovement(true);
-            m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+            if (m_creature->getVictim())
+                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
         }
     }
 
@@ -1023,20 +1020,15 @@ struct MANGOS_DLL_DECL boss_icehowlAI : public ScriptedAI
                 {
                         // go to center
                     case 0:
-                        m_creature->GetMotionMaster()->MovePoint(0, ArenaSpawnLoc[1].m_fX, ArenaSpawnLoc[1].m_fY, ArenaSpawnLoc[1].m_fZ);
-                        // hack to simultate the jump
-                        m_creature->GetMap()->CreatureRelocation(m_creature, ArenaSpawnLoc[1].m_fX, ArenaSpawnLoc[1].m_fY, ArenaSpawnLoc[1].m_fZ, 0);
-                        m_creature->SendMonsterMove(ArenaSpawnLoc[1].m_fX, ArenaSpawnLoc[1].m_fY, ArenaSpawnLoc[1].m_fZ, SPLINETYPE_NORMAL, m_creature->GetSplineFlags(), 1);
-                        m_creature->GetMotionMaster()->MoveIdle();
                         SetCombatMovement(false);
-                        m_creature->CombatStop(true);
-                        m_creature->InterruptNonMeleeSpells(false);
+                        m_creature->GetMotionMaster()->MoveIdle();
+                        m_creature->GetMotionMaster()->MoveJump(1, 2, 3, 10.0f, 10.0f, 47);
+
                         ++m_uiTrampleStage;
                         m_uiTrampleTimer = 3000;
                         break;
                         // cast massive crash & stop
                     case 1:
-                        m_creature->GetMotionMaster()->MoveIdle();
                         if (DoCastSpellIfCan(m_creature, SPELL_MASSIVE_CRASH) == CAST_OK)
                         {
                             ++m_uiTrampleStage;
@@ -1061,7 +1053,7 @@ struct MANGOS_DLL_DECL boss_icehowlAI : public ScriptedAI
                             m_bMovementStarted = true;
                             m_creature->GetMotionMaster()->Clear();
                             m_creature->SetSpeedRate(MOVE_RUN, 2.0f);
-                            m_creature->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
+                            m_creature->SetWalk(false);
                             m_creature->GetMotionMaster()->MovePoint(1, pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ());
                             ++m_uiTrampleStage;
                             m_uiTrampleTimer = 500;
@@ -1138,7 +1130,7 @@ struct MANGOS_DLL_DECL boss_icehowlAI : public ScriptedAI
         if (m_uiMassiveCrashTimer < uiDiff)
         {
             m_bIsTrample = true;
-            m_uiTrampleTimer = 500;
+            m_uiTrampleTimer = 1000;
             m_uiTrampleStage = 0;
             m_uiMassiveCrashTimer = urand(45000, 50000);
         }
