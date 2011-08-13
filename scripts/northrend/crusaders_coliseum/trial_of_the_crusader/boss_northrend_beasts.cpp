@@ -229,6 +229,26 @@ CreatureAI* GetAI_npc_beast_combat_stalker(Creature* pCreature)
 ## boss_gormok, vehicle driven by 34800 (multiple times)
 ######*/
 
+enum
+{
+    // gormok spells
+    SPELL_IMPALE                = 66331,
+    SPELL_STOMP                 = 66330,
+    SPELL_RISING_ANGER          = 66636,
+    SPELL_SNOBOLLED             = 66406,    // throw snobold on players head
+
+    // these should be adde in vehicle seats on gormok's back
+    NPC_SNOBOLD_VASSAL          = 34800,
+
+    // snobold spells
+    // ToDo: move in eventAI
+    SPELL_BATTER                = 66408,
+    SPELL_FIREBOMB              = 66313,
+    SPELL_HEADCRACK             = 66407,
+    NPC_FIREBOMB                = 34854,
+    SPELL_FIREBOMB_DOT          = 66318,
+};
+
 struct MANGOS_DLL_DECL boss_gormokAI : public ScriptedAI
 {
     boss_gormokAI(Creature* pCreature) : ScriptedAI(pCreature)
@@ -239,7 +259,32 @@ struct MANGOS_DLL_DECL boss_gormokAI : public ScriptedAI
 
     ScriptedInstance* m_pInstance;
 
-    void Reset() override {}
+    uint8 m_uiMaxSnobold;
+    uint8 m_uiSnoboldNo;
+    uint8 m_uiHealthPoint;
+
+    uint32 m_uiStompTimer;
+    uint32 m_uiImpaleTimer;
+
+    void Reset() override
+    {
+        m_uiStompTimer      = urand(20000, 25000);
+        m_uiImpaleTimer     = 10000;
+        m_uiSnoboldNo           = 1;
+
+        // this is a workaround for handling snobolds
+        // should be using vehicles here
+        if (m_creature->GetMap()->GetDifficulty() == RAID_DIFFICULTY_10MAN_HEROIC || m_creature->GetMap()->GetDifficulty() == RAID_DIFFICULTY_10MAN_NORMAL)
+        {
+            m_uiMaxSnobold  = 5;
+            m_uiHealthPoint = 20;
+        }
+        else if (m_creature->GetMap()->GetDifficulty() == RAID_DIFFICULTY_25MAN_HEROIC || m_creature->GetMap()->GetDifficulty() == RAID_DIFFICULTY_25MAN_NORMAL)
+        {
+            m_uiMaxSnobold  = 6;
+            m_uiHealthPoint = 17;
+        }
+    }
 
     void JustReachedHome() override
     {
@@ -249,10 +294,54 @@ struct MANGOS_DLL_DECL boss_gormokAI : public ScriptedAI
     {
     }
 
-    void UpdateAI(const uint32 /*uiDiff*/) override
+    void DamageTaken(Unit* /*pDealer*/, uint32& /*uiDamage*/) override
+    {
+        if (m_uiSnoboldNo > m_uiMaxSnobold)
+            return;
+
+        if (m_creature->GetHealthPercent() <= (100 - m_uiHealthPoint * m_uiSnoboldNo))
+        {
+            if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+            {
+                // throw snobold
+                if (DoCastSpellIfCan(pTarget, SPELL_SNOBOLLED, true) == CAST_OK)
+                {
+                    // buff boss
+                    DoCastSpellIfCan(m_creature, SPELL_RISING_ANGER);
+                    // workaround for summoning snobolds
+                    if (Creature* pSnobold = m_creature->SummonCreature(NPC_SNOBOLD_VASSAL, pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 30000))
+                    {
+                        pSnobold->AddThreat(pTarget, 100.0f);
+                        m_uiSnoboldNo += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    void UpdateAI(const uint32 uiDiff) override
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
+
+        if (m_uiStompTimer < uiDiff)
+        {
+            if (DoCastSpellIfCan(m_creature, SPELL_STOMP) == CAST_OK)
+                m_uiStompTimer = 20000;
+        }
+        else
+            m_uiStompTimer -= uiDiff;
+
+        if (m_uiImpaleTimer < uiDiff)
+        {
+            if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_TOPAGGRO, 0))
+            {
+                if (DoCastSpellIfCan(pTarget, SPELL_IMPALE) == CAST_OK)
+                    m_uiImpaleTimer = 10000;
+            }
+        }
+        else
+            m_uiImpaleTimer -= uiDiff;
 
         DoMeleeAttackIfReady();
     }
