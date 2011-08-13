@@ -373,6 +373,35 @@ CreatureAI* GetAI_boss_gormok(Creature* pCreature)
 ## boss_acidmaw
 ######*/
 
+enum
+{
+    // mobile
+    SPELL_ACID_SPEW             = 66818,
+    SPELL_PARALYTIC_BITE        = 66824,
+    // stationary
+    SPELL_ACID_SPIT             = 66880,
+    SPELL_PARALYTIC_SPRAY       = 66901,
+    SPELL_PARALYTIC_TOXIN       = 66823,
+
+    // common spells
+    SPELL_SLIME_POOL            = 66883,
+    SPELL_SWEEP                 = 66794,
+    SPELL_ENRAGE                = 68335,
+
+    // slime pool
+    SPELL_SLIME_POOL_AURA       = 66882,    // casted by the slime pool; need to add visual as dummy
+    NPC_SLIME_POOL              = 35176,
+
+    // display ids
+    DISPLAY_ID_ACID_FIXED       = 29815,
+    DISPLAY_ID_ACID_MOBILE      = 29816,
+
+    // phases
+    PHASE_STATIONARY            = 0,
+    PHASE_SUBMERGED             = 1,
+    PHASE_MOBILE                = 2
+};
+
 struct MANGOS_DLL_DECL boss_acidmawAI : public ScriptedAI
 {
     boss_acidmawAI(Creature* pCreature) : ScriptedAI(pCreature)
@@ -383,7 +412,43 @@ struct MANGOS_DLL_DECL boss_acidmawAI : public ScriptedAI
 
     ScriptedInstance* m_pInstance;
 
-    void Reset() override {}
+    // mobile
+    uint32 m_uiAcidSpewTimer;
+    uint32 m_uiParaliticBiteTimer;
+    uint32 m_uiSlimePoolTimer;
+
+    // stationary
+    uint32 m_uiAcidSpitTimer;
+    uint32 m_uiParaliticSprayTimer;
+    uint32 m_uiSweepTimer;
+
+    // phase change
+    uint32 m_uiPhaseChangeTimer;
+    uint32 m_uiSubmergeTimer;
+    uint32 m_uiMoveTimer;
+    uint8 m_uiPhase;
+
+    bool hasEnraged;
+
+    void Reset() override
+    {
+        // mobile
+        m_uiAcidSpewTimer       = 5000;
+        m_uiParaliticBiteTimer  = urand(5000, 10000);
+        m_uiSlimePoolTimer      = urand(12000, 15000);
+
+        // stationary
+        m_uiAcidSpitTimer       = 3000;
+        m_uiParaliticSprayTimer = urand(7000, 13000);
+        m_uiSweepTimer          = urand(12000, 15000);
+
+        m_uiPhase               = PHASE_MOBILE;
+        m_uiPhaseChangeTimer    = 45000;
+        m_uiSubmergeTimer   = 60000;
+        m_uiMoveTimer       = 60000;
+
+        hasEnraged          = false;
+    }
 
     void JustReachedHome() override
     {
@@ -393,10 +458,172 @@ struct MANGOS_DLL_DECL boss_acidmawAI : public ScriptedAI
     {
     }
 
-    void UpdateAI(const uint32 /*uiDiff*/) override
+    void JustSummoned(Creature* pSummned) override
+    {
+        if (pSummned->GetEntry() == NPC_SLIME_POOL)
+            pSummned->CastSpell(pSummned, SPELL_SLIME_POOL_AURA, false);
+    }
+
+    void UpdateAI(const uint32 uiDiff) override
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
+
+        // stationary
+        if (m_uiPhase == PHASE_STATIONARY)
+        {
+            /*if (phaseChangeTimer < uiDiff)
+            {
+                m_creature->CastStop();
+                DoCast(m_creature, SPELL_SUBMERGE);
+                m_creature->SetVisibility(VISIBILITY_OFF);
+                m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                m_uiMoveTimer       = 2000;
+                m_uiSubmergeTimer   = 4000;
+                phaseChangeTimer    = 45000;
+            }
+            else
+                phaseChangeTimer -= uiDiff;
+
+            if (m_uiMoveTimer < uiDiff)
+            {
+                float posZ = m_creature->GetPositionZ();
+                // init random location
+                float angle = (float) rand()*360/RAND_MAX + 1;
+                float posX = SpawnLoc[1].x + urand(0, 40)*cos(angle*(M_PI/180));
+                float posY = SpawnLoc[1].y + urand(0, 40)*sin(angle*(M_PI/180));
+                m_creature->GetMap()->CreatureRelocation(m_creature, posX, posY, posZ, m_creature->GetOrientation());
+                m_creature->SendMonsterMove(posX, posY, posZ, SPLINETYPE_NORMAL, m_creature->GetSplineFlags(), 1);
+                m_uiMoveTimer = 60000;
+            }
+            else m_uiMoveTimer -= uiDiff;
+
+            if (m_uiSubmergeTimer < uiDiff)
+            {
+                m_creature->RemoveAurasDueToSpell(SPELL_SUBMERGE);
+                m_creature->SetVisibility(VISIBILITY_ON);
+                m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                m_creature->SetDisplayId(DISPLAY_ACID_MOBILE);
+                phase = 2;
+                m_creature->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
+                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                SetCombatMovement(true);
+                m_uiSubmergeTimer = 60000;
+            }
+            else
+                m_uiSubmergeTimer -= uiDiff;
+
+            if (m_creature->HasAura(SPELL_SUBMERGE, EFFECT_INDEX_0))
+                return;*/
+
+            if (m_uiAcidSpitTimer < uiDiff)
+            {
+                if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+                {
+                    if (DoCastSpellIfCan(pTarget, SPELL_ACID_SPIT) == CAST_OK)
+                        m_uiAcidSpitTimer = 3000;
+                }
+            }
+            else
+                m_uiAcidSpitTimer -= uiDiff;
+
+            if (m_uiParaliticSprayTimer < uiDiff)
+            {
+                if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+                {
+                    if (DoCastSpellIfCan(pTarget, SPELL_PARALYTIC_SPRAY) == CAST_OK)
+                        m_uiParaliticSprayTimer = 21000;
+                }
+            }
+            else
+                m_uiParaliticSprayTimer -= uiDiff;
+
+            if (m_uiSweepTimer < uiDiff)
+            {
+                if (DoCastSpellIfCan(m_creature, SPELL_SWEEP) == CAST_OK)
+                    m_uiSweepTimer = urand(10000, 15000);
+            }
+            else
+                m_uiSweepTimer -= uiDiff;
+        }
+        else if (m_uiPhase == PHASE_SUBMERGED)
+        {
+        }
+        else if (m_uiPhase == PHASE_MOBILE)
+        {
+            /*if (phaseChangeTimer < uiDiff)
+            {
+                m_creature->CastStop();
+                DoCast(m_creature, SPELL_SUBMERGE);
+                m_creature->SetVisibility(VISIBILITY_OFF);
+                m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                SetCombatMovement(false);
+                m_uiMoveTimer       = 2000;
+                m_uiSubmergeTimer   = 4000;
+                phaseChangeTimer    = 45000;
+            }
+            else
+                phaseChangeTimer -= uiDiff;
+
+            if (m_uiMoveTimer < uiDiff)
+            {
+                float posZ = m_creature->GetPositionZ();
+                // init random location
+                float angle = (float) rand()*360/RAND_MAX + 1;
+                float posX = SpawnLoc[1].x + urand(0, 40)*cos(angle*(M_PI/180));
+                float posY = SpawnLoc[1].y + urand(0, 40)*sin(angle*(M_PI/180));
+                m_creature->GetMap()->CreatureRelocation(m_creature, posX, posY, posZ, m_creature->GetOrientation());
+                m_creature->SendMonsterMove(posX, posY, posZ, SPLINETYPE_NORMAL, m_creature->GetSplineFlags(), 1);
+                m_uiMoveTimer = 60000;
+            }
+            else m_uiMoveTimer -= uiDiff;
+
+            if (m_uiSubmergeTimer < uiDiff)
+            {
+                m_creature->RemoveAurasDueToSpell(SPELL_SUBMERGE);
+                m_creature->SetVisibility(VISIBILITY_ON);
+                m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                m_creature->SetDisplayId(DISPLAY_ACID_FIXED);
+                phase = 1;
+                m_creature->StopMoving();
+                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->MoveIdle();
+                SetCombatMovement(false);
+                m_uiSubmergeTimer = 60000;
+            }
+            else
+                m_uiSubmergeTimer -= uiDiff;
+
+            if (m_creature->HasAura(SPELL_SUBMERGE, EFFECT_INDEX_0))
+                return;*/
+
+            if (m_uiParaliticBiteTimer < uiDiff)
+            {
+                if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+                {
+                    if (DoCastSpellIfCan(pTarget, SPELL_PARALYTIC_BITE) == CAST_OK)
+                        m_uiParaliticBiteTimer = urand(5000, 7000);
+                }
+            }
+            else
+                m_uiParaliticBiteTimer -= uiDiff;
+
+            if (m_uiSlimePoolTimer < uiDiff)
+            {
+                if (DoCastSpellIfCan(m_creature, SPELL_SLIME_POOL) == CAST_OK)
+                    m_uiSlimePoolTimer = urand(17000, 23000);
+            }
+            else
+                m_uiSlimePoolTimer -= uiDiff;
+
+            if (m_uiAcidSpewTimer < uiDiff)
+            {
+                if (DoCastSpellIfCan(m_creature, SPELL_ACID_SPEW) == CAST_OK)
+                    m_uiAcidSpewTimer = 21000;
+            }
+            else
+                m_uiAcidSpewTimer -= uiDiff;
+        }
 
         DoMeleeAttackIfReady();
     }
