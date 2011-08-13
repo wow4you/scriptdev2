@@ -638,6 +638,21 @@ CreatureAI* GetAI_boss_acidmaw(Creature* pCreature)
 ## boss_dreadscale
 ######*/
 
+enum
+{
+    // mobile
+    SPELL_BURNING_BITE          = 66879,
+    SPELL_MOLTEN_SPEW           = 66821,
+    // stationary
+    SPELL_FIRE_SPIT             = 66796,
+    SPELL_BURNING_SPRAY         = 66902,
+    SPELL_BURNING_BILE          = 66869,
+
+    // display ids
+    DISPLAY_ID_DREAD_FIXED      = 26935,
+    DISPLAY_ID_DREAD_MOBILE     = 24564,
+};
+
 struct MANGOS_DLL_DECL boss_dreadscaleAI : public ScriptedAI
 {
     boss_dreadscaleAI(Creature* pCreature) : ScriptedAI(pCreature)
@@ -648,7 +663,40 @@ struct MANGOS_DLL_DECL boss_dreadscaleAI : public ScriptedAI
 
     ScriptedInstance* m_pInstance;
 
-    void Reset() override {}
+    // mobile
+    uint32 m_uiBurningBiteTimer;
+    uint32 m_uiMoltenSpewTimer;
+    uint32 m_uiSlimePoolTimer;
+
+    // stationary
+    uint32 m_uiFireSpitTimer;
+    uint32 m_uiBurningSprayTimer;
+    uint32 m_uiSweepTimer;
+
+    uint32 m_uiPhaseChangeTimer;
+    uint32 m_uiSubmergeTimer;
+    uint32 m_uiMoveTimer;
+    uint8 m_uiPhase;
+
+    bool hasEnraged;
+
+    void Reset() override
+    {
+        // mobile
+        m_uiBurningBiteTimer    = urand(3000, 5000);
+        m_uiMoltenSpewTimer     = urand(7000, 13000);
+        m_uiSlimePoolTimer      = urand(13000, 15000);
+
+        // stationary
+        m_uiFireSpitTimer       = 3000;
+        m_uiBurningSprayTimer   = urand(5000, 7000);
+        m_uiSweepTimer          = urand(13000, 15000);
+
+        m_uiPhase               = PHASE_STATIONARY;
+        m_uiPhaseChangeTimer    = 45000;
+        m_uiSubmergeTimer   = 60000;
+        m_uiMoveTimer       = 60000;
+    }
 
     void JustReachedHome() override
     {
@@ -658,10 +706,172 @@ struct MANGOS_DLL_DECL boss_dreadscaleAI : public ScriptedAI
     {
     }
 
-    void UpdateAI(const uint32 /*uiDiff*/) override
+    void JustSummoned(Creature* pSummned) override
+    {
+        if (pSummned->GetEntry() == NPC_SLIME_POOL)
+            pSummned->CastSpell(pSummned, SPELL_SLIME_POOL_AURA, false);
+    }
+
+    void UpdateAI(const uint32 uiDiff) override
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
+
+        // stationary
+        if (m_uiPhase == PHASE_STATIONARY)
+        {
+            /*if (phaseChangeTimer < uiDiff)
+            {
+                m_creature->CastStop();
+                DoCast(m_creature, SPELL_SUBMERGE);
+                m_creature->SetVisibility(VISIBILITY_OFF);
+                m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                m_uiSubmergeTimer   = 4000;
+                m_uiMoveTimer       = 2000;
+                phaseChangeTimer    = 45000;
+            }
+            else
+                phaseChangeTimer -= uiDiff;
+
+            if (m_uiMoveTimer < uiDiff)
+            {
+                float posZ = m_creature->GetPositionZ();
+                // init random location
+                float angle = (float) rand()*360/RAND_MAX + 1;
+                float posX = SpawnLoc[1].x + urand(0, 40)*cos(angle*(M_PI/180));
+                float posY = SpawnLoc[1].y + urand(0, 40)*sin(angle*(M_PI/180));
+                m_creature->GetMap()->CreatureRelocation(m_creature, posX, posY, posZ, m_creature->GetOrientation());
+                m_creature->SendMonsterMove(posX, posY, posZ, SPLINETYPE_NORMAL, m_creature->GetSplineFlags(), 1);
+                m_uiMoveTimer = 60000;
+            }
+            else m_uiMoveTimer -= uiDiff;
+
+            if (m_uiSubmergeTimer < uiDiff)
+            {
+                m_creature->RemoveAurasDueToSpell(SPELL_SUBMERGE);
+                m_creature->SetVisibility(VISIBILITY_ON);
+                m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                m_creature->SetDisplayId(DISPLAY_DREAD_MOBILE);
+                phase = 2;
+                m_creature->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
+                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                SetCombatMovement(true);
+                m_uiSubmergeTimer = 60000;
+            }
+            else
+                m_uiSubmergeTimer -= uiDiff;
+
+            if (m_creature->HasAura(SPELL_SUBMERGE, EFFECT_INDEX_0))
+                return;*/
+
+            if (m_uiFireSpitTimer < uiDiff)
+            {
+                if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+                {
+                    if (DoCastSpellIfCan(pTarget, SPELL_FIRE_SPIT) == CAST_OK)
+                        m_uiFireSpitTimer = urand(3000, 5000);
+                }
+            }
+            else
+                m_uiFireSpitTimer -= uiDiff;
+
+            if (m_uiBurningSprayTimer < uiDiff)
+            {
+                if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+                {
+                    if (DoCastSpellIfCan(pTarget, SPELL_BURNING_SPRAY) == CAST_OK)
+                        m_uiBurningSprayTimer = 21000;
+                }
+            }
+            else
+                m_uiBurningSprayTimer -= uiDiff;
+
+            if (m_uiSweepTimer < uiDiff)
+            {
+                if (DoCastSpellIfCan(m_creature, SPELL_SWEEP) == CAST_OK)
+                    m_uiSweepTimer = urand(10000, 15000);
+            }
+            else
+                m_uiSweepTimer -= uiDiff;
+        }
+        else if (m_uiPhase == PHASE_SUBMERGED)
+        {
+        }
+        else if (m_uiPhase == PHASE_MOBILE)
+        {
+            /*if (phaseChangeTimer < uiDiff)
+            {
+                m_creature->CastStop();
+                DoCast(m_creature, SPELL_SUBMERGE);
+                m_creature->SetVisibility(VISIBILITY_OFF);
+                m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                SetCombatMovement(false);
+                m_uiSubmergeTimer   = 4000;
+                m_uiMoveTimer       = 2000;
+                phaseChangeTimer    = 45000;
+            }
+            else
+                phaseChangeTimer -= uiDiff;
+
+            if (m_uiMoveTimer < uiDiff)
+            {
+                float posZ = m_creature->GetPositionZ();
+                // init random location
+                float angle = (float) rand()*360/RAND_MAX + 1;
+                float posX = SpawnLoc[1].x + urand(0, 40)*cos(angle*(M_PI/180));
+                float posY = SpawnLoc[1].y + urand(0, 40)*sin(angle*(M_PI/180));
+                m_creature->GetMap()->CreatureRelocation(m_creature, posX, posY, posZ, m_creature->GetOrientation());
+                m_creature->SendMonsterMove(posX, posY, posZ, SPLINETYPE_NORMAL, m_creature->GetSplineFlags(), 1);
+                m_uiMoveTimer = 60000;
+            }
+            else m_uiMoveTimer -= uiDiff;
+
+            if (m_uiSubmergeTimer < uiDiff)
+            {
+                m_creature->RemoveAurasDueToSpell(SPELL_SUBMERGE);
+                m_creature->SetVisibility(VISIBILITY_ON);
+                m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE|UNIT_FLAG_NOT_SELECTABLE);
+                m_creature->SetDisplayId(DISPLAY_DREAD_FIXED);
+                phase = 1;
+                m_creature->StopMoving();
+                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->MoveIdle();
+                SetCombatMovement(false);
+                m_uiSubmergeTimer = 60000;
+            }
+            else
+                m_uiSubmergeTimer -= uiDiff;
+
+            if (m_creature->HasAura(SPELL_SUBMERGE, EFFECT_INDEX_0))
+                return;*/
+
+            if (m_uiBurningBiteTimer < uiDiff)
+            {
+                if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+                {
+                    if (DoCastSpellIfCan(pTarget, SPELL_BURNING_BITE) == CAST_OK)
+                        m_uiBurningBiteTimer = urand(5000, 7000);
+                }
+            }
+            else
+                m_uiBurningBiteTimer -= uiDiff;
+
+            if (m_uiSlimePoolTimer < uiDiff)
+            {
+                if (DoCastSpellIfCan(m_creature, SPELL_SLIME_POOL) == CAST_OK)
+                    m_uiSlimePoolTimer = urand(17000, 23000);
+            }
+            else
+                m_uiSlimePoolTimer -= uiDiff;
+
+            if (m_uiMoltenSpewTimer < uiDiff)
+            {
+                if (DoCastSpellIfCan(m_creature, SPELL_MOLTEN_SPEW) == CAST_OK)
+                    m_uiMoltenSpewTimer = 21000;
+            }
+            else
+                m_uiMoltenSpewTimer -= uiDiff;
+        }
 
         DoMeleeAttackIfReady();
     }
