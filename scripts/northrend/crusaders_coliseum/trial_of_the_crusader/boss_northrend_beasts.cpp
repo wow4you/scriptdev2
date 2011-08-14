@@ -914,17 +914,19 @@ enum
     SPELL_TRAMPLE               = 66734,
     SPELL_STAGGERED_DAZE        = 66758,
     SPELL_FROTHING_RAGE         = 66759,
+
+    POINT_ID_TRAMPLE            = 10,
 };
 
 struct MANGOS_DLL_DECL boss_icehowlAI : public ScriptedAI
 {
     boss_icehowlAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
+        m_pInstance = (instance_trial_of_the_crusader*)pCreature->GetInstanceData();
         Reset();
     }
 
-    ScriptedInstance* m_pInstance;
+    instance_trial_of_the_crusader* m_pInstance;
 
     uint32 m_uiFerociousButtTimer;
     uint32 m_uiArticBreathTimer;
@@ -978,18 +980,13 @@ struct MANGOS_DLL_DECL boss_icehowlAI : public ScriptedAI
 
     void MovementInform(uint32 type, uint32 id) override
     {
-        if (type != POINT_MOTION_TYPE)
+        if (type != POINT_MOTION_TYPE || id != POINT_ID_TRAMPLE)
             return;
 
-        if (id != 1 && m_bMovementStarted)
-            m_creature->GetMotionMaster()->MovePoint(1, fPosX, fPosY, fPosZ);
-        else
-        {
-            m_bMovementStarted = false;
-            SetCombatMovement(true);
-            if (m_creature->getVictim())
-                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
-        }
+        m_bMovementStarted = false;
+        SetCombatMovement(true);
+        if (m_creature->getVictim())
+            m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
     }
 
     // every player casts surge of addrenaline on normal difficulty
@@ -1022,7 +1019,7 @@ struct MANGOS_DLL_DECL boss_icehowlAI : public ScriptedAI
                     case 0:
                         SetCombatMovement(false);
                         m_creature->GetMotionMaster()->MoveIdle();
-                        m_creature->GetMotionMaster()->MoveJump(1, 2, 3, 10.0f, 10.0f, 47);
+                        m_creature->GetMotionMaster()->MoveJump(aSpawnPositions[11][0], aSpawnPositions[11][1], aSpawnPositions[11][2], 10.0f, 10.0f);
 
                         ++m_uiTrampleStage;
                         m_uiTrampleTimer = 3000;
@@ -1054,7 +1051,7 @@ struct MANGOS_DLL_DECL boss_icehowlAI : public ScriptedAI
                             m_creature->GetMotionMaster()->Clear();
                             m_creature->SetSpeedRate(MOVE_RUN, 2.0f);
                             m_creature->SetWalk(false);
-                            m_creature->GetMotionMaster()->MovePoint(1, pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ());
+                            m_creature->GetMotionMaster()->MovePoint(POINT_ID_TRAMPLE, pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ());
                             ++m_uiTrampleStage;
                             m_uiTrampleTimer = 500;
                         }
