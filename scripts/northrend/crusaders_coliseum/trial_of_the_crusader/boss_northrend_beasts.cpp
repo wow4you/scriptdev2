@@ -397,6 +397,7 @@ enum
     DISPLAY_ID_ACID_MOBILE      = 29816,
 
     // phases
+    PHASE_NON_ATTACK            = 3,
     PHASE_STATIONARY            = 0,
     PHASE_SUBMERGED             = 1,
     PHASE_MOBILE                = 2
@@ -692,7 +693,7 @@ struct MANGOS_DLL_DECL boss_dreadscaleAI : public ScriptedAI
         m_uiBurningSprayTimer   = urand(5000, 7000);
         m_uiSweepTimer          = urand(13000, 15000);
 
-        m_uiPhase               = PHASE_STATIONARY;
+        m_uiPhase               = PHASE_NON_ATTACK;
         m_uiPhaseChangeTimer    = 45000;
         m_uiSubmergeTimer   = 60000;
         m_uiMoveTimer       = 60000;
@@ -704,6 +705,20 @@ struct MANGOS_DLL_DECL boss_dreadscaleAI : public ScriptedAI
 
     void Aggro(Unit* /*pWho*/) override
     {
+    }
+
+    void MoveInLineOfSight(Unit* pWho) override
+    {
+        if (m_uiPhase == PHASE_NON_ATTACK)
+            return;
+
+        ScriptedAI::MoveInLineOfSight(pWho);
+    }
+
+    void MovementInform(uint32 uiMovementType, uint32 uiData) override
+    {
+        if (uiMovementType == POINT_MOTION_TYPE && uiData == PHASE_WORMS)
+            m_uiPhase = PHASE_STATIONARY;
     }
 
     void JustSummoned(Creature* pSummned) override
