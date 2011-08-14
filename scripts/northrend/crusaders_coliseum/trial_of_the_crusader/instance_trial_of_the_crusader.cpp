@@ -180,6 +180,7 @@ void instance_trial_of_the_crusader::OnCreatureCreate(Creature* pCreature)
         case NPC_GARROSH:
         case NPC_JARAXXUS:
         case NPC_OPEN_PORTAL_TARGET:
+        case NPC_FJOLA:
         case NPC_EYDIS:
         case NPC_WORLD_TRIGGER_LARGE:
         case NPC_THE_LICHKING:
@@ -485,6 +486,11 @@ void instance_trial_of_the_crusader::JustDidDialogueStep(int32 iEntry)
             {
                 pPlayer->SummonCreature(NPC_FJOLA, aSpawnPositions[7][0], aSpawnPositions[7][1], aSpawnPositions[7][2], aSpawnPositions[7][3], TEMPSUMMON_DEAD_DESPAWN, 0);
                 pPlayer->SummonCreature(NPC_EYDIS, aSpawnPositions[8][0], aSpawnPositions[8][1], aSpawnPositions[8][2], aSpawnPositions[8][3], TEMPSUMMON_DEAD_DESPAWN, 0);
+
+                pPlayer->SummonCreature(NPC_LIGHT_ESSENCE, aEssencePositions[0][0], aEssencePositions[0][1], aEssencePositions[0][2], aEssencePositions[0][3], TEMPSUMMON_DEAD_DESPAWN, 0);
+                pPlayer->SummonCreature(NPC_LIGHT_ESSENCE, aEssencePositions[1][0], aEssencePositions[1][1], aEssencePositions[1][2], aEssencePositions[1][3], TEMPSUMMON_DEAD_DESPAWN, 0);
+                pPlayer->SummonCreature(NPC_DARK_ESSENCE, aEssencePositions[2][0], aEssencePositions[2][1], aEssencePositions[2][2], aEssencePositions[2][3], TEMPSUMMON_DEAD_DESPAWN, 0);
+                pPlayer->SummonCreature(NPC_DARK_ESSENCE, aEssencePositions[3][0], aEssencePositions[3][1], aEssencePositions[3][2], aEssencePositions[3][3], TEMPSUMMON_DEAD_DESPAWN, 0);
             }
             break;
         case SAY_LKING_ANUB_INTRO_1:

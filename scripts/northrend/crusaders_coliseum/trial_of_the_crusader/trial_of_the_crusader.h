@@ -57,6 +57,9 @@ enum
 
     NPC_PURPLE_RUNE             = 35651,
 
+    NPC_LIGHT_ESSENCE           = 34568,
+    NPC_DARK_ESSENCE            = 34567,
+
     GO_MAIN_GATE                = 195647,
     GO_WEST_GATE                = 195648,                   // entrance gate
     GO_SOUTH_GATE               = 195649,                   // south and north doors are used to allow the Champions to enter the arena
@@ -125,6 +128,14 @@ static const float aMovePositions[][3] =
     {576.5347f, 168.9514f, 394.7064f},                      // Dreadscale
     {563.8577f, 176.5885f, 394.4417f},                      // Icehowl
     {563.7223f, 131.2344f, 393.9901f},                      // Jaraxxus
+};
+
+static const float aEssencePositions[4][4] =
+{
+    { 541.021118f, 117.262932f, 395.314819f, 0.0f },         // Light essence
+    { 586.200562f, 162.145523f, 394.626129f, 0.0f },         // Light essence
+    { 586.060242f, 117.514809f, 394.314026f, 0.0f },         // Dark essence
+    { 541.602112f, 161.879837f, 394.587952f, 0.0f },         // Dark essence
 };
 
 class MANGOS_DLL_DECL instance_trial_of_the_crusader : public ScriptedInstance, private DialogueHelper
