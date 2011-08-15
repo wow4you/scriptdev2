@@ -66,6 +66,7 @@ enum
     SPELL_SHADOW_AXE_PROC_H     = 59719,                    // triggers 59720
 
     //ressurection sequenze
+    SPELL_ASTRAL_TELEPORT       = 34427,                    // aura cast by Annhylde on spawn
     SPELL_SUMMON_BANSHEE        = 42912,                    // summons Annhylde and sets a glow aura
     SPELL_FEIGN_DEATH           = 42795,
     SPELL_TRANSFORM             = 42796,
@@ -160,6 +161,7 @@ struct MANGOS_DLL_DECL boss_ingvarAI : public ScriptedAI
 
             case NPC_ANNHYLDE:
                 // This is not blizzlike - npc should be summoned above the boss and should move slower
+                pSummoned->CastSpell(pSummoned, SPELL_ASTRAL_TELEPORT, false);
                 pSummoned->SetLevitate(true);
                 pSummoned->GetMotionMaster()->MovePoint(POINT_ID_ANNHYLDE, pSummoned->GetPositionX(), pSummoned->GetPositionY(), pSummoned->GetPositionZ() + 15.0f);
                 break;
@@ -294,6 +296,10 @@ struct MANGOS_DLL_DECL npc_annhyldeAI : public ScriptedAI
         m_uiResurrectTimer = 0;
         m_uiResurrectPhase = 0;
     }
+
+    // No attacking
+    void MoveInLineOfSight(Unit*) {}
+    void AttackStart(Unit*) {}
 
     void MovementInform(uint32 uiMotionType, uint32 uiPointId)
     {
