@@ -93,6 +93,8 @@ struct MANGOS_DLL_DECL boss_fjolaAI : public ScriptedAI
     uint8 m_uiSpecialAbilityIndex;
     uint8 m_uiSpecialAbilityOrder[MAX_SPECIAL_ABILITIES];
 
+    GuidList m_lEssenceGuids;
+
     void Reset() override
     {
         m_uiLightTwinSpikeTimer = 20000;
@@ -106,6 +108,8 @@ struct MANGOS_DLL_DECL boss_fjolaAI : public ScriptedAI
 
         m_uiSpecialAbilityIndex = 0;
         GenerateRandomSpecialAbilityOrder();
+
+        m_lEssenceGuids.clear();
     }
 
     void GenerateRandomSpecialAbilityOrder()
@@ -129,6 +133,11 @@ struct MANGOS_DLL_DECL boss_fjolaAI : public ScriptedAI
 
     void JustReachedHome() override
     {
+        // Despawn Essences
+        for (GuidList::const_iterator itr = m_lEssenceGuids.begin(); itr != m_lEssenceGuids.end(); ++itr)
+            if (Creature* pEssence = m_creature->GetMap()->GetCreature(*itr))
+                pEssence->ForcedDespawn();
+
         if (m_pInstance)
             m_pInstance->SetData(TYPE_TWIN_VALKYR, FAIL);
     }
@@ -167,6 +176,11 @@ struct MANGOS_DLL_DECL boss_fjolaAI : public ScriptedAI
     void JustDied(Unit* /*pKiller*/) override
     {
         DoScriptText(SAY_DEATH, m_creature);
+
+        // Despawn Essences
+        for (GuidList::const_iterator itr = m_lEssenceGuids.begin(); itr != m_lEssenceGuids.end(); ++itr)
+            if (Creature* pEssence = m_creature->GetMap()->GetCreature(*itr))
+                pEssence->ForcedDespawn();
 
         if (m_pInstance)
             m_pInstance->SetData(TYPE_TWIN_VALKYR, DONE);
@@ -267,6 +281,17 @@ struct MANGOS_DLL_DECL boss_fjolaAI : public ScriptedAI
         }
 
         DoMeleeAttackIfReady();
+    }
+
+    void JustSummoned(Creature* pCreature)
+    {
+        switch (pCreature->GetEntry())
+        {
+            case NPC_LIGHT_ESSENCE:
+            case NPC_DARK_ESSENCE:
+                m_lEssenceGuids.push_back(pCreature->GetObjectGuid());
+                break;
+        }
     }
 };
 
