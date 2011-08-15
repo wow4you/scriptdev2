@@ -95,6 +95,7 @@ struct MANGOS_DLL_DECL boss_ingvarAI : public ScriptedAI
     bool m_bIsRegularMode;
 
     bool m_bIsResurrected;
+    bool m_bIsFakingDeath;
 
     uint32 m_uiCleaveTimer;
     uint32 m_uiSmashTimer;
@@ -104,6 +105,7 @@ struct MANGOS_DLL_DECL boss_ingvarAI : public ScriptedAI
     void Reset()
     {
         m_bIsResurrected = false;
+        m_bIsFakingDeath = false;
 
         m_uiCleaveTimer = urand(5000, 7000);
         m_uiSmashTimer = urand(8000, 15000);
@@ -126,17 +128,23 @@ struct MANGOS_DLL_DECL boss_ingvarAI : public ScriptedAI
         if (m_bIsResurrected)
             return;
 
+        if (m_bIsFakingDeath)
+        {
+            uiDamage = 0;
+            return;
+        }
+
         if (uiDamage >= m_creature->GetHealth())
         {
             uiDamage = 0;
 
             DoScriptText(SAY_DEATH_FIRST, m_creature);
 
-            if (DoCastSpellIfCan(m_creature, SPELL_SUMMON_BANSHEE, CAST_TRIGGERED) == CAST_OK)
-            {
-                m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
-                DoCastSpellIfCan(m_creature, SPELL_FEIGN_DEATH, CAST_TRIGGERED);
-            }
+            DoCastSpellIfCan(m_creature, SPELL_SUMMON_BANSHEE, CAST_TRIGGERED);
+            DoCastSpellIfCan(m_creature, SPELL_FEIGN_DEATH, CAST_TRIGGERED);
+            m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+
+            m_bIsFakingDeath = true;
         }
     }
 
@@ -147,6 +155,7 @@ struct MANGOS_DLL_DECL boss_ingvarAI : public ScriptedAI
             DoScriptText(SAY_AGGRO_SECOND, m_creature);
             m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
             m_bIsResurrected = true;
+            m_bIsFakingDeath = false;
         }
     }
 
@@ -187,10 +196,10 @@ struct MANGOS_DLL_DECL boss_ingvarAI : public ScriptedAI
 
     void UpdateAI(const uint32 uiDiff)
     {
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim() || m_creature->HasAura(SPELL_FEIGN_DEATH))
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim() || m_bIsFakingDeath)
             return;
 
-        if (!m_bIsResurrected)
+        if (!m_bIsResurrected)                              // First phase
         {
             if (m_uiCleaveTimer < uiDiff)
             {
@@ -227,7 +236,7 @@ struct MANGOS_DLL_DECL boss_ingvarAI : public ScriptedAI
             else
                 m_uiEnrageTimer -= uiDiff;
         }
-        else
+        else                                                // Second phase
         {
             if (m_uiCleaveTimer < uiDiff)
             {
