@@ -17,7 +17,7 @@
 /* ScriptData
 SDName: Ebon_Hold
 SD%Complete: 80
-SDComment: Quest support: 12848, 12733, 12739(and 12742 to 12750), 12727, 12641, 12801
+SDComment: Quest support: 12848, 12733, 12739(and 12742 to 12750), 12727, 12641, 12801, 12698
 SDCategory: Ebon Hold
 EndScriptData */
 
@@ -28,12 +28,14 @@ npc_unworthy_initiate_anchor
 npc_unworthy_initiate
 go_acherus_soul_prison
 npc_eye_of_acherus
+npc_scarlet_ghoul
 npc_highlord_darion_mograine
 EndContentData */
 
 #include "precompiled.h"
 #include "world_map_ebon_hold.h"
 #include "escort_ai.h"
+#include "pet_ai.h"
 
 /*######
 ## npc_a_special_surprise
@@ -1215,6 +1217,88 @@ struct MANGOS_DLL_DECL npc_eye_of_acherusAI : public ScriptedAI
 CreatureAI* GetAI_npc_eye_of_acherus(Creature* pCreature)
 {
     return new npc_eye_of_acherusAI(pCreature);
+}
+
+/*######
+## npc_scarlet_ghoul
+######*/
+
+enum
+{
+    //SAY_GOTHIK_THROW_IN_PIT     = -1,
+    SPELL_GHOUL_SUMMONED        = 52500,
+    SPELL_GOTHIK_GHOUL_PING     = 52514,
+    SPELL_QUEST_CREDIT          = 52517,
+    SPELL_GHOUL_UNSUMMON        = 52555,
+
+    NPC_GOTHIK                  = 28658,
+};
+
+static const float aPitPosition[3] = {2380.13f, -5783.06f, 151.367f};
+
+struct MANGOS_DLL_DECL npc_scarlet_ghoulAI : public ScriptedPetAI
+{
+    npc_scarlet_ghoulAI(Creature* pCreature) : ScriptedPetAI(pCreature)
+    {
+        m_bGotHit = false;
+        m_bIsJumping = false;
+        DoCastSpellIfCan(m_creature, SPELL_GHOUL_SUMMONED);
+        Reset();
+    }
+
+    bool m_bGotHit;
+    bool m_bIsJumping;                                      // Workaround
+    void Reset() {}
+
+    void MovementInform(uint32 uiMotionType, uint32 uiPointId)
+    {
+        if (uiMotionType != EFFECT_MOTION_TYPE || uiPointId != 1)
+            return;
+
+        DoCastSpellIfCan(m_creature, SPELL_GHOUL_UNSUMMON);
+        m_creature->DealDamage(m_creature, m_creature->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
+        if (m_creature->IsPet())
+            ((Pet*)m_creature)->Unsummon(PET_SAVE_AS_DELETED);
+    }
+
+    void UpdateAI(const uint32 uiDiff)
+    {
+        if (m_bIsJumping)
+            return;
+        ScriptedPetAI::UpdateAI(uiDiff);
+    }
+};
+
+bool EffectDummyCreature_npc_scarlet_ghoul(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Creature* pCreatureTarget)
+{
+    if (uiSpellId == SPELL_GOTHIK_GHOUL_PING && uiEffIndex == EFFECT_INDEX_0)
+    {
+        if (npc_scarlet_ghoulAI* pGhoulAi = dynamic_cast<npc_scarlet_ghoulAI*>(pCreatureTarget->AI()))
+        {
+            if (!pGhoulAi->m_bGotHit)                       // First hit
+            {
+                pCreatureTarget->CastSpell(pCreatureTarget, 52517, false);
+                pGhoulAi->m_bGotHit = true;
+            }
+            else                                            // Second hit
+            {
+                // Todo: Handle Gothik text (remark that this spell usally should hit multiple npcs, but only one text should be displayed!)
+
+                float fX, fY, fZ;
+                pCreatureTarget->GetRandomPoint(aPitPosition[0], aPitPosition[1], aPitPosition[2], 10.0f, fX, fY, fZ);
+                pGhoulAi->m_bIsJumping = true;
+                pCreatureTarget->GetMotionMaster()->MoveJump(fX, fY, fZ, 24.21229f, 6.0f, 1);
+            }
+        }
+        return true;
+    }
+
+    return false;
+}
+
+CreatureAI* GetAI_npc_scarlet_ghoul(Creature* pCreature)
+{
+    return new npc_scarlet_ghoulAI(pCreature);
 }
 
 /*######
@@ -2637,6 +2721,12 @@ void AddSC_ebon_hold()
     pNewScript = new Script;
     pNewScript->Name = "npc_eye_of_acherus";
     pNewScript->GetAI = &GetAI_npc_eye_of_acherus;
+    pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "npc_scarlet_ghoul";
+    pNewScript->GetAI = &GetAI_npc_scarlet_ghoul;
+    pNewScript->pEffectDummyNPC = &EffectDummyCreature_npc_scarlet_ghoul;
     pNewScript->RegisterSelf();
 
     pNewScript = new Script;
