@@ -1424,6 +1424,17 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
         }
     }
 
+    void GetAIInformation(ChatHandler& reader)
+    {
+        npc_escortAI::GetAIInformation(reader);
+
+        if (m_pInstance)
+            reader.PSendSysMessage("Current state for TYPE_BATTLE: %u", m_pInstance->GetData(TYPE_BATTLE));
+
+        reader.PSendSysMessage("Current Event step: %u (%s)", m_uiEventStep == 0 ? "Not-Started" : m_uiEventStep < 6 ? "Intro"  : m_uiEventStep < 9 ? "Battle" : "Outro");
+        reader.PSendSysMessage("Event-processing is %s, Fighting is %s", reader.GetOnOffStr(m_uiEventTimer), reader.GetOnOffStr(m_uiFightTimer));
+    }
+
     void Aggro(Unit* pWho)
     {
         // cast aggro aura
@@ -1477,7 +1488,8 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                     DoCastSpellIfCan(m_creature, SPELL_BIRTH);
 
                     float fX, fY, fZ;
-                    for (uint8 i = 0; i < MAX_WARRIORS_SUMMONED_PER_TURN; i++)
+                    // Actually this is some sort of cheat - but so many scourge numbers fall (currently), that I think it is ok to increase the summon amount
+                    for (uint8 i = 0; i < MAX_WARRIORS_SUMMONED_PER_TURN + 1; ++i)
                     {
                         uint32 uiSummonEntry = urand(0, 1) ? NPC_VOLATILE_GHOUL : NPC_WARRIOR_OF_THE_FROZEN_WASTES;
                         m_creature->GetRandomPoint(aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ, 30.0f, fX, fY, fZ);
@@ -1551,9 +1563,10 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 pSummoned->SetFacingTo(aEventLocations[1].m_fO);
 
                 m_creature->Unmount();
-                m_creature->AI()->EnterEvadeMode();
-                m_creature->SetWalk(true);
+                SetEscortPaused(false);
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
+                m_creature->SetWalk(true); // TODO - better use escort version?
+                m_creature->AI()->EnterEvadeMode();
 
                 DoCastSpellIfCan(m_creature, SPELL_THE_LIGHT_OF_DAWN);
 
@@ -1579,11 +1592,10 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                         if (!pTemp->isAlive())
                             pTemp->Respawn();
                         else
-                        {
                             pTemp->AI()->EnterEvadeMode();
-                            pTemp->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
-                            pTemp->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
-                        }
+
+                        pTemp->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
+                        pTemp->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
                     }
                 }
 
@@ -1591,7 +1603,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 m_lDefendersGUIDs.clear();
 
                 // spawn soldiers
-                for (uint8 i = 0; i < MAX_LIGHT_GUARDS; i++)
+                for (uint8 i = 0; i < MAX_LIGHT_GUARDS; ++i)
                 {
                     if (Creature* pGuard = m_creature->SummonCreature(NPC_DEFENDER_OF_THE_LIGHT, aGuardsSpawnLoc[i].m_fX, aGuardsSpawnLoc[i].m_fY, aGuardsSpawnLoc[i].m_fZ, aGuardsSpawnLoc[i].m_fO, TEMPSUMMON_CORPSE_DESPAWN, 0))
                     {
@@ -1603,13 +1615,14 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                     }
                 }
 
-                SetEscortPaused(false);
                 break;
         }
     }
 
     void JustRespawned()
     {
+        m_creature->SetActiveObjectState(false);
+
         if (m_pInstance)
             m_pInstance->SetData(TYPE_BATTLE, NOT_STARTED);
 
@@ -1826,6 +1839,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                         case 8:
                             // start attack (escort)
                             DoScriptText(EMOTE_LIGHT_OF_DAWN_ARMY_MARCH, m_creature);
+                            m_creature->SetActiveObjectState(true);
                             Start(true);
 
                             // move the companions as well
@@ -2321,7 +2335,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 if (m_uiFightTimer <= uiDiff || m_uiLightWarriorsDead >= 100)
                 {
                     // summon Tirion and move him to the chapel
-                    if (Creature* pTirion = m_creature->SummonCreature(NPC_HIGHLORD_TIRION_FORDRING, aEventLocations[0].m_fX, aEventLocations[0].m_fY, aEventLocations[0].m_fZ, aEventLocations[0].m_fO, TEMPSUMMON_CORPSE_DESPAWN, 5000))
+                    if (Creature* pTirion = m_creature->SummonCreature(NPC_HIGHLORD_TIRION_FORDRING, aEventLocations[0].m_fX, aEventLocations[0].m_fY, aEventLocations[0].m_fZ, aEventLocations[0].m_fO, TEMPSUMMON_CORPSE_DESPAWN, 5000, true))
                     {
                         // this spell should be triggered by some npc
                         //pTirion->CastSpell(pTirion, SPELL_THE_LIGHT_OF_DAWN_AURA, true);
@@ -2329,8 +2343,9 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                         DoScriptText(EMOTE_LIGHT_OF_DAWN_TIRION, pTirion);
                         pTirion->SetWalk(false);
                         pTirion->GetMotionMaster()->MovePoint(POINT_MOVE_CHAPEL, aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ);
+
+                        m_uiFightTimer = 0;
                     }
-                    m_uiFightTimer = 0;
                 }
                 else
                     m_uiFightTimer -= uiDiff;
@@ -2437,7 +2452,7 @@ bool GossipSelect_npc_highlord_darion_mograine(Player* pPlayer, Creature* pCreat
         {
             // set data to special in order to start the event
             pInstance->SetData(TYPE_BATTLE, SPECIAL);
-            pCreature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
+            pPlayer->CLOSE_GOSSIP_MENU();
 
             return true;
         }
