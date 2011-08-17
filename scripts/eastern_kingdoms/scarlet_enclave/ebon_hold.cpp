@@ -1185,11 +1185,13 @@ struct MANGOS_DLL_DECL npc_eye_of_acherusAI : public ScriptedAI
 
     void MovementInform(uint32 uiType, uint32 uiPointId)
     {
-       if (uiType != POINT_MOTION_TYPE || uiPointId != POINT_EYE_DESTINATION)
+        if (uiType != POINT_MOTION_TYPE || uiPointId != POINT_EYE_DESTINATION)
             return;
 
-        m_creature->MonsterTextEmote(EMOTE_CONTROL, m_creature, true);
-        m_creature->CastSpell(m_creature, SPELL_EYE_FLIGHT, true);
+        if (Player* pPlayer = m_creature->GetCharmerOrOwnerPlayerOrPlayerItself())
+            DoScriptText(EMOTE_CONTROL, m_creature, pPlayer);
+
+         m_creature->CastSpell(m_creature, SPELL_EYE_FLIGHT, true);
     }
 
     void UpdateAI(const uint32 uiDiff)
@@ -1197,9 +1199,9 @@ struct MANGOS_DLL_DECL npc_eye_of_acherusAI : public ScriptedAI
         if (m_isActive)
             return;
 
-        if (m_creature->isCharmed())
+        if (Player* pPlayer = m_creature->GetCharmerOrOwnerPlayerOrPlayerItself())
         {
-            m_creature->MonsterTextEmote(EMOTE_DESTIANTION, m_creature, true);
+            DoScriptText(EMOTE_DESTIANTION, m_creature, pPlayer);
 
             m_creature->CastSpell(m_creature, SPELL_EYE_VISUAL, true);
             m_creature->CastSpell(m_creature, SPELL_EYE_FLIGHT_BOOST, true);
