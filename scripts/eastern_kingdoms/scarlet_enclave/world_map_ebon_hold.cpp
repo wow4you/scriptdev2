@@ -76,12 +76,13 @@ void world_map_ebon_hold::OnCreatureDeath(Creature* pCreature)
         // resummon the behemots or abominations if they die
         case NPC_FLESH_BEHEMOTH:
         case NPC_RAMPAGING_ABOMINATION:
-            m_lArmyGuids.remove(pCreature->GetObjectGuid());
+            m_lArmyGuids.remove(pCreature->GetObjectGuid()); // if remove respawning on reset won't work! (are there any spawned by default?) ?? - unclear related to ResetBattle()
             if (Creature* pTemp = pCreature->SummonCreature(pCreature->GetEntry(), pCreature->GetPositionX(), pCreature->GetPositionY(), pCreature->GetPositionZ(), pCreature->GetOrientation(), TEMPSUMMON_CORPSE_DESPAWN, 0))
             {
                 // the new summoned mob should attack
-                if (Creature* pDarion = GetSingleCreatureFromStorage(NPC_HIGHLORD_DARION_MOGRAINE))
-                    pTemp->AI()->AttackStart(pDarion);
+                Creature* pDarion = GetSingleCreatureFromStorage(NPC_HIGHLORD_DARION_MOGRAINE);
+                if (pDarion && pDarion->getVictim())
+                    pTemp->AI()->AttackStart(pDarion->getVictim());
             }
             pCreature->ForcedDespawn(1000);
             break;

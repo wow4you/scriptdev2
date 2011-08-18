@@ -1441,8 +1441,9 @@ enum LightOfDawn
     SPELL_REBIRTH_OF_THE_ASHBRINGER     = 53702,    // globe sphere
     SPELL_TIRION_CHARGE                 = 53705,    // on the lich king
 
-    POINT_MOVE_CHAPEL                   = 0,
-    POINT_MOVE_OTHER                    = 1,
+    POINT_MOVE_CHAPEL                   = 100,      // Use high entries to not conflict with escortAI waypoints
+    POINT_MOVE_OTHER                    = 101,
+    POINT_MOVE_RETURN_BATTLE            = 102,
 
     // others
     QUEST_ID_LIGHT_OF_DAWN              = 12801,
@@ -1702,6 +1703,21 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 }
 
                 break;
+        }
+    }
+
+    void MovementInform(uint32 uiMotionType, uint32 uiPointId)
+    {
+        if (uiPointId < POINT_MOVE_CHAPEL)
+        {
+            npc_escortAI::MovementInform(uiMotionType, uiPointId);
+            return;
+        }
+
+        if (uiMotionType == POINT_MOTION_TYPE && uiPointId == POINT_MOVE_RETURN_BATTLE)
+        {
+            SetCombatMovement(false);
+            DoStartMovement(m_creature->getVictim());
         }
     }
 
@@ -2420,6 +2436,11 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 // on blizz the battle takes about 4 min, time in which about 100 light warriors die
                 if (m_uiFightTimer <= uiDiff || m_uiLightWarriorsDead >= 100)
                 {
+                    // Total workaround, to ensure the grid is loaded!
+                    float x, y, z, o;
+                    m_creature->GetPosition(x, y, z);
+                    o = m_creature->GetOrientation();
+                    m_creature->GetMap()->CreatureRelocation(m_creature, aEventLocations[0].m_fX, aEventLocations[0].m_fY, aEventLocations[0].m_fZ, aEventLocations[0].m_fO);
                     // summon Tirion and move him to the chapel
                     if (Creature* pTirion = m_creature->SummonCreature(NPC_HIGHLORD_TIRION_FORDRING, aEventLocations[0].m_fX, aEventLocations[0].m_fY, aEventLocations[0].m_fZ, aEventLocations[0].m_fO, TEMPSUMMON_CORPSE_DESPAWN, 5000, true))
                     {
@@ -2432,6 +2453,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
 
                         m_uiFightTimer = 0;
                     }
+                    m_creature->GetMap()->CreatureRelocation(m_creature, x, y, z, o);
                 }
                 else
                     m_uiFightTimer -= uiDiff;
@@ -2468,7 +2490,10 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
 
                 // make sure that darion always stays in the area
                 if (!m_creature->IsWithinDist2d(aEventLocations[1].m_fX, aEventLocations[1].m_fY, 50.0f))
-                    m_creature->GetMotionMaster()->MovePoint(0, aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ);
+                {
+                    SetCombatMovement(false);
+                    m_creature->GetMotionMaster()->MovePoint(POINT_MOVE_RETURN_BATTLE, aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ);
+                }
 
                 // Darion spells
                 if (m_uiAntimagicZoneTimer < uiDiff)
