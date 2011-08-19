@@ -1765,7 +1765,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 // start the battle
                 SetEscortPaused(true);
                 // Note: spell should affect only players
-                //DoCastSpellIfCan(m_creature, SPELL_THE_MIGHT_OF_MOGRAINE);
+                DoCastSpellIfCan(m_creature, SPELL_THE_MIGHT_OF_MOGRAINE);
 
                 // start attacking someone
                 if (Creature* pChamp = m_pInstance->GetSingleCreatureFromStorage(aLightArmySpawnLoc[urand(0, MAX_LIGHT_CHAMPIONS - 1)].m_uiEntry))
