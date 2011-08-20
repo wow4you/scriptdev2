@@ -1650,6 +1650,13 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 pSummoned->SetFacingTo(aEventLocations[1].m_fO);
 
                 m_creature->Unmount();
+
+                if (!HasEscortState(STATE_ESCORT_PAUSED))
+                {
+                    SetEscortPaused(true);                      // In case something didn't go as expected
+                    SetCurrentWaypoint(5);
+                    m_uiEventTimer = 60000;                     // Another failsafe
+                }
                 SetEscortPaused(false);
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
                 m_creature->SetWalk(true); // TODO - better use escort version?
@@ -1760,12 +1767,14 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 // yell dawn 2
                 if (Creature* pMaxwell = m_pInstance->GetSingleCreatureFromStorage(NPC_LORD_MAXWELL_TYROSUS))
                     DoScriptText(SAY_LIGHT_OF_DAWN_STAND_2, pMaxwell);
+
+                DoCastSpellIfCan(m_creature, SPELL_THE_MIGHT_OF_MOGRAINE);
+                // max fight timer
+                m_uiFightTimer = 5*MINUTE*IN_MILLISECONDS;
                 break;
             case 4:
                 // start the battle
                 SetEscortPaused(true);
-                // Note: spell should affect only players
-                DoCastSpellIfCan(m_creature, SPELL_THE_MIGHT_OF_MOGRAINE);
 
                 // start attacking someone
                 if (Creature* pChamp = m_pInstance->GetSingleCreatureFromStorage(aLightArmySpawnLoc[urand(0, MAX_LIGHT_CHAMPIONS - 1)].m_uiEntry))
@@ -1787,9 +1796,6 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                     if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                         pTemp->AI()->AttackStart(m_creature);
                 }
-
-                // max fight timer
-                m_uiFightTimer = 4*MINUTE*IN_MILLISECONDS;
                 break;
             case 5:
                 // battle finished - remove light of dawn aura
@@ -2419,6 +2425,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                             m_uiEventTimer = 5*MINUTE*IN_MILLISECONDS;
                             break;
                         case 66:
+                            m_creature->ForcedDespawn();
                             m_creature->Respawn();
                             m_uiEventTimer = 0;
                             break;
@@ -2499,7 +2506,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
                 if (m_uiAntimagicZoneTimer < uiDiff)
                 {
                     if (DoCastSpellIfCan(m_creature, SPELL_ANTI_MAGIC_ZONE_DARION) == CAST_OK)
-                        m_uiAntimagicZoneTimer = urand(25000, 30000);
+                        m_uiAntimagicZoneTimer = urand(85000, 90000);
                 }
                 else
                     m_uiAntimagicZoneTimer -= uiDiff;

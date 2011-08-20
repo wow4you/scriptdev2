@@ -6245,7 +6245,7 @@ INSERT INTO `script_waypoint` VALUES
 (29173, 2, 2357.140, -5209.571, 79.642, 0,'SAY_LIGHT_OF_DAWN_STAND_1'),
 (29173, 3, 2342.683, -5232.791, 85.259, 0,'SAY_LIGHT_OF_DAWN_STAND_2'),
 (29173, 4, 2281.354, -5278.533, 82.227, 0,'Start battle'),
-(29173, 5, 2280.302, -5284.489, 82.657, 0,'Go in front of the chapel for outro');
+(29173, 5, 2280.302, -5284.489, 82.657, 600000,'Go in front of the chapel for outro');
 
 DELETE FROM script_waypoint WHERE entry=11832;
 INSERT INTO script_waypoint VALUES

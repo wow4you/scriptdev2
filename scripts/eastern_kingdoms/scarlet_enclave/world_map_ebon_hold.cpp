@@ -178,16 +178,13 @@ void world_map_ebon_hold::DoUpdateBattleWorldState(uint32 uiStateId, uint32 uiSt
 {
     Map::PlayerList const& lPlayers = instance->GetPlayers();
 
-    if (!lPlayers.isEmpty())
+    for (Map::PlayerList::const_iterator itr = lPlayers.begin(); itr != lPlayers.end(); ++itr)
     {
-        for(Map::PlayerList::const_iterator itr = lPlayers.begin(); itr != lPlayers.end(); ++itr)
+        if (Player* pPlayer = itr->getSource())
         {
-            if (Player* pPlayer = itr->getSource())
-            {
-                // we need to manually check the phase mask because the value from DBC is not used yet
-                if (pPlayer->HasAura(SPELL_CHAPTER_IV))
-                    pPlayer->SendUpdateWorldState(uiStateId, uiStateData);
-            }
+            // we need to manually check the phase mask because the value from DBC is not used yet
+            if (pPlayer->HasAura(SPELL_CHAPTER_IV) || pPlayer->isGameMaster())
+                pPlayer->SendUpdateWorldState(uiStateId, uiStateData);
         }
     }
 }
