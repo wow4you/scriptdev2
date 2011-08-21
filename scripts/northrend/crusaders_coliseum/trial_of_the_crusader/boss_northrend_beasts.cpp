@@ -309,7 +309,7 @@ struct MANGOS_DLL_DECL boss_gormokAI : public ScriptedAI
                     // buff boss
                     DoCastSpellIfCan(m_creature, SPELL_RISING_ANGER);
                     // workaround for summoning snobolds
-                    if (Creature* pSnobold = m_creature->SummonCreature(NPC_SNOBOLD_VASSAL, pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 30000))
+                    if (Creature* pSnobold = m_creature->SummonCreature(NPC_SNOBOLD_VASSAL, pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 24000))
                     {
                         pSnobold->AddThreat(pTarget, 100.0f);
                         m_uiSnoboldNo += 1;
