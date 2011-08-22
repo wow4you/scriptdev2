@@ -267,7 +267,15 @@ struct MANGOS_DLL_DECL boss_fjolaAI : public ScriptedAI
                 pEssence->ForcedDespawn();
 
         if (m_pInstance)
+        {
             m_pInstance->SetData(TYPE_TWIN_VALKYR, FAIL);
+
+            // The first who evades despawns the sister
+            if (Creature* pOtherSister = m_pInstance->GetSingleCreatureFromStorage(NPC_EYDIS))
+                pOtherSister->ForcedDespawn();
+        }
+
+        m_creature->ForcedDespawn();
     }
 
     void Aggro(Unit* /*pWho*/) override
