@@ -304,6 +304,8 @@ struct MANGOS_DLL_DECL boss_gormokAI : public ScriptedAI
 
     void Aggro(Unit* /*pWho*/) override
     {
+        if (m_pInstance)
+            m_pInstance->DoUseDoorOrButton(GO_MAIN_GATE);
     }
 
     void JustDied(Unit* /*pKiller*/) override
@@ -705,6 +707,8 @@ struct MANGOS_DLL_DECL boss_dreadscaleAI : public ScriptedAI
 
     void Aggro(Unit* /*pWho*/) override
     {
+        if (m_pInstance)
+            m_pInstance->DoUseDoorOrButton(GO_MAIN_GATE);
     }
 
     void MoveInLineOfSight(Unit* pWho) override
@@ -970,6 +974,8 @@ struct MANGOS_DLL_DECL boss_icehowlAI : public ScriptedAI
 
     void Aggro(Unit* /*pWho*/) override
     {
+        if (m_pInstance)
+            m_pInstance->DoUseDoorOrButton(GO_MAIN_GATE);
     }
 
     void JustDied(Unit* /*pKiller*/) override

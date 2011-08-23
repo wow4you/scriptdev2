@@ -186,6 +186,10 @@ void instance_trial_of_the_crusader::OnCreatureCreate(Creature* pCreature)
         case NPC_THE_LICHKING:
         case NPC_THE_LICHKING_VISUAL:
             break;
+        case NPC_GORMOK:
+        case NPC_DREADSCALE:
+        case NPC_ICEHOWL:
+            DoUseDoorOrButton(GO_MAIN_GATE);
         default:
             return;
     }
