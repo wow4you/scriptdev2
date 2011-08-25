@@ -407,13 +407,43 @@ struct MANGOS_DLL_DECL mob_sanctum_sentryAI : public ScriptedAI
         {
             // they should follow Auriaya, but this looks ugly!
             if (Creature* pTemp = m_pInstance->GetSingleCreatureFromStorage(NPC_AURIAYA))
-            {
-                if (pTemp->isAlive())
+                // they should follow Auriaya, but this looks ugly!
+                if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() != FOLLOW_MOTION_TYPE)
                 {
-                    m_creature->GetMotionMaster()->MoveFollow(pTemp, 0.0f, 0.0f);
-                    m_creature->GetMap()->CreatureRelocation(m_creature, pTemp->GetPositionX(), pTemp->GetPositionY(), pTemp->GetPositionZ(), 0.0f);
+                    if (pTemp->isAlive())
+                    {
+                        m_creature->GetMotionMaster()->MoveFollow(pTemp, 0.0f, 0.0f);
+                        m_creature->GetMap()->CreatureRelocation(m_creature, pTemp->GetPositionX(), pTemp->GetPositionY(), pTemp->GetPositionZ(), 0.0f);
+                    }
+                    Creature* pTemp = m_pInstance->GetSingleCreatureFromStorage(NPC_AURIAYA);
+                    if (pTemp && pTemp->isAlive())
+                    {
+                        // Calculate follow position
+                        float sX, sY, sZ, mX, mY, mZ, mO;
+                        m_creature->GetRespawnCoord(sX, sY, sZ);
+                        pTemp->GetRespawnCoord(mX, mY, mZ, &mO);
+
+                        float dx, dy, dz;
+                        dx = sX - mX;
+                        dy = sY - mY;
+                        dz = sZ - mZ;
+
+                        float dist = sqrt(dx * dx + dy * dy + dz * dz);
+                        // TODO this code needs the same distance calculation that is used for following
+                        // Atm this means we have to subtract the bounding radiuses
+                        dist = dist - m_creature->GetObjectBoundingRadius() - pTemp->GetObjectBoundingRadius();
+                        if (dist < 0.0f)
+                            dist = 0.0f;
+
+                        // Need to pass the relative angle to following
+                        float angle = atan2(dy, dx) - mO;
+                        angle = (angle >= 0) ? angle : 2 * M_PI_F + angle;
+
+                        m_creature->GetMotionMaster()->MoveFollow(pTemp, dist, angle);
+                    }
                 }
-            }
+
+            return;
         }
 
         if (m_uiRip_Flesh_Timer < diff)
