@@ -72,6 +72,130 @@ enum
 };
 
 /*######
+## boss_eydis
+######*/
+
+struct MANGOS_DLL_DECL boss_eydisAI : public ScriptedAI
+{
+    boss_eydisAI(Creature* pCreature) : ScriptedAI(pCreature)
+    {
+        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
+        Reset();
+    }
+
+    ScriptedInstance* m_pInstance;
+
+    uint32 m_uiDarkTouchTimer;
+    uint32 m_uiBerserkTimer;
+
+    bool m_bIsCastingTwinPact;
+
+    void Reset() override
+    {
+        m_uiDarkTouchTimer = urand(10000, 15000);
+
+        if (m_creature->GetMap()->GetDifficulty() == RAID_DIFFICULTY_10MAN_NORMAL || m_creature->GetMap()->GetDifficulty() == RAID_DIFFICULTY_25MAN_NORMAL)
+            m_uiBerserkTimer = 10 * MINUTE * IN_MILLISECONDS;
+        else
+            m_uiBerserkTimer = 6 * MINUTE * IN_MILLISECONDS;
+
+        m_bIsCastingTwinPact = false;
+    }
+
+    void Aggro(Unit* /*pWho*/) override
+    {
+        DoScriptText(SAY_AGGRO, m_creature);
+
+        m_creature->SetInCombatWithZone();
+    }
+
+    void DamageTaken(Unit* /*pDealer*/, uint32& uiDamage) override
+    {
+        // Hack - Share damage
+        if (m_pInstance)
+        {
+            if (Creature* pFjola = m_pInstance->GetSingleCreatureFromStorage(NPC_FJOLA))
+            {
+                if (pFjola->isAlive())
+                {
+                    uiDamage /= 2;
+                    pFjola->DealDamage(pFjola, uiDamage, NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
+                }
+            }
+        }
+
+        // Hack, interrupt twin pakt
+        if (uiDamage && m_bIsCastingTwinPact && !m_creature->HasAura(SPELL_DARK_SHIELD) && !m_creature->HasAura(67256) && !m_creature->HasAura(67257) && !m_creature->HasAura(67258))
+        {
+            m_creature->InterruptNonMeleeSpells(false);
+            m_bIsCastingTwinPact = false;
+        }
+    }
+
+    void SpellHit(Unit* pCaster, const SpellEntry* pSpell) override
+    {
+        if (pCaster == m_creature && (pSpell->Id == SPELL_DARK_TWIN_PACT || pSpell->Id == 67303 || pSpell->Id == 67304 || pSpell->Id == 67305))
+            m_bIsCastingTwinPact = false;
+    }
+
+    void DoCastTwinPact()
+    {
+        DoCastSpellIfCan(m_creature, SPELL_DARK_SHIELD, CAST_TRIGGERED);
+        DoCastSpellIfCan(m_creature, SPELL_DARK_TWIN_PACT, CAST_INTERRUPT_PREVIOUS);
+
+        m_bIsCastingTwinPact = true;
+    }
+
+    void KilledUnit(Unit* /*pWho*/) override
+    {
+        DoScriptText((urand(0, 1)) ? SAY_SLAY_1 : SAY_SLAY_2, m_creature);
+    }
+
+    void JustDied(Unit* /*pKiller*/) override
+    {
+        DoScriptText(SAY_DEATH, m_creature);
+    }
+
+    void UpdateAI(const uint32 uiDiff) override
+    {
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+            return;
+
+        if (m_creature->GetMap()->GetDifficulty() >= RAID_DIFFICULTY_10MAN_HEROIC)
+        {
+            if (m_uiDarkTouchTimer < uiDiff)
+            {
+                if (DoCastSpellIfCan(m_creature, SPELL_DARK_TOUCH) == CAST_OK)
+                    m_uiDarkTouchTimer = urand(10000, 15000);
+            }
+            else
+                m_uiDarkTouchTimer -= uiDiff;
+        }
+
+        if (m_uiBerserkTimer)
+        {
+            if (m_uiBerserkTimer <= uiDiff)
+            {
+                if (DoCastSpellIfCan(m_creature, SPELL_BERSERK, CAST_TRIGGERED) == CAST_OK)
+                {
+                    DoScriptText(SAY_BERSERK, m_creature);
+                    m_uiBerserkTimer = 0;
+                }
+            }
+            else
+                m_uiBerserkTimer -= uiDiff;
+        }
+
+        DoMeleeAttackIfReady();
+    }
+};
+
+CreatureAI* GetAI_boss_eydis(Creature* pCreature)
+{
+    return new boss_eydisAI(pCreature);
+}
+
+/*######
 ## boss_fjola
 ######*/
 
@@ -93,6 +217,8 @@ struct MANGOS_DLL_DECL boss_fjolaAI : public ScriptedAI
     uint8 m_uiSpecialAbilityIndex;
     uint8 m_uiSpecialAbilityOrder[MAX_SPECIAL_ABILITIES];
 
+    bool m_bIsCastingTwinPact;
+
     GuidList m_lEssenceGuids;
 
     void Reset() override
@@ -108,6 +234,8 @@ struct MANGOS_DLL_DECL boss_fjolaAI : public ScriptedAI
 
         m_uiSpecialAbilityIndex = 0;
         GenerateRandomSpecialAbilityOrder();
+
+        m_bIsCastingTwinPact = false;
 
         m_lEssenceGuids.clear();
     }
@@ -166,6 +294,19 @@ struct MANGOS_DLL_DECL boss_fjolaAI : public ScriptedAI
                 }
             }
         }
+
+        // Hack, interrupt twin pakt
+        if (uiDamage && m_bIsCastingTwinPact && !m_creature->HasAura(SPELL_LIGHT_SHIELD) && !m_creature->HasAura(67259) && !m_creature->HasAura(67260) && !m_creature->HasAura(67261))
+        {
+            m_creature->InterruptNonMeleeSpells(false);
+            m_bIsCastingTwinPact = false;
+        }
+    }
+
+    void SpellHit(Unit* pCaster, const SpellEntry* pSpell)
+    {
+        if (pCaster == m_creature && (pSpell->Id == SPELL_LIGHT_TWIN_PACT || pSpell->Id == 67306 || pSpell->Id == 67307 || pSpell->Id == 67308))
+            m_bIsCastingTwinPact = false;
     }
 
     void KilledUnit(Unit* /*pWho*/) override
@@ -209,7 +350,8 @@ struct MANGOS_DLL_DECL boss_fjolaAI : public ScriptedAI
                     break;
                 case 1: // Fjola Twin Pact
                     DoCastSpellIfCan(m_creature, SPELL_LIGHT_SHIELD, CAST_TRIGGERED);
-                    DoCastSpellIfCan(m_creature, SPELL_LIGHT_TWIN_PACT);
+                    DoCastSpellIfCan(m_creature, SPELL_LIGHT_TWIN_PACT, CAST_INTERRUPT_PREVIOUS);
+                    m_bIsCastingTwinPact = true;
 
                     // The other twin gains TWIN_POWER
                     if (m_pInstance)
@@ -232,8 +374,8 @@ struct MANGOS_DLL_DECL boss_fjolaAI : public ScriptedAI
                     {
                         if (Creature* pEydis = m_pInstance->GetSingleCreatureFromStorage(NPC_EYDIS))
                         {
-                            pEydis->CastSpell(pEydis, SPELL_DARK_SHIELD, true);
-                            pEydis->CastSpell(pEydis, SPELL_DARK_TWIN_PACT, false);
+                            if (boss_eydisAI* pEydisAi = dynamic_cast<boss_eydisAI*>(pEydis->AI()))
+                                pEydisAi->DoCastTwinPact();
 
                             // The other twin gains TWIN_POWER
                             DoCastSpellIfCan(m_creature, SPELL_TWIN_POWER, CAST_TRIGGERED);
@@ -298,105 +440,6 @@ struct MANGOS_DLL_DECL boss_fjolaAI : public ScriptedAI
 CreatureAI* GetAI_boss_fjola(Creature* pCreature)
 {
     return new boss_fjolaAI(pCreature);
-}
-
-/*######
-## boss_eydis
-######*/
-
-struct MANGOS_DLL_DECL boss_eydisAI : public ScriptedAI
-{
-    boss_eydisAI(Creature* pCreature) : ScriptedAI(pCreature)
-    {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
-        Reset();
-    }
-
-    ScriptedInstance* m_pInstance;
-
-    uint32 m_uiDarkTouchTimer;
-    uint32 m_uiBerserkTimer;
-
-    void Reset() override
-    {
-        m_uiDarkTouchTimer = urand(10000, 15000);
-
-        if (m_creature->GetMap()->GetDifficulty() == RAID_DIFFICULTY_10MAN_NORMAL || m_creature->GetMap()->GetDifficulty() == RAID_DIFFICULTY_25MAN_NORMAL)
-            m_uiBerserkTimer = 10 * MINUTE * IN_MILLISECONDS;
-        else
-            m_uiBerserkTimer = 6 * MINUTE * IN_MILLISECONDS;
-    }
-
-    void Aggro(Unit* /*pWho*/) override
-    {
-        DoScriptText(SAY_AGGRO, m_creature);
-
-        m_creature->SetInCombatWithZone();
-    }
-
-    void DamageTaken(Unit* /*pDealer*/, uint32& uiDamage) override
-    {
-        // Hack - Share damage
-        if (m_pInstance)
-        {
-            if (Creature* pFjola = m_pInstance->GetSingleCreatureFromStorage(NPC_FJOLA))
-            {
-                if (pFjola->isAlive())
-                {
-                    uiDamage /= 2;
-                    pFjola->DealDamage(pFjola, uiDamage, NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
-                }
-            }
-        }
-    }
-
-    void KilledUnit(Unit* /*pWho*/) override
-    {
-        DoScriptText((urand(0, 1)) ? SAY_SLAY_1 : SAY_SLAY_2, m_creature);
-    }
-
-    void JustDied(Unit* /*pKiller*/) override
-    {
-        DoScriptText(SAY_DEATH, m_creature);
-    }
-
-    void UpdateAI(const uint32 uiDiff) override
-    {
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
-            return;
-
-        if (m_creature->GetMap()->GetDifficulty() >= RAID_DIFFICULTY_10MAN_HEROIC)
-        {
-            if (m_uiDarkTouchTimer < uiDiff)
-            {
-                if (DoCastSpellIfCan(m_creature, SPELL_DARK_TOUCH) == CAST_OK)
-                    m_uiDarkTouchTimer = urand(10000, 15000);
-            }
-            else
-                m_uiDarkTouchTimer -= uiDiff;
-        }
-
-        if (m_uiBerserkTimer)
-        {
-            if (m_uiBerserkTimer <= uiDiff)
-            {
-                if (DoCastSpellIfCan(m_creature, SPELL_BERSERK, CAST_TRIGGERED) == CAST_OK)
-                {
-                    DoScriptText(SAY_BERSERK, m_creature);
-                    m_uiBerserkTimer = 0;
-                }
-            }
-            else
-                m_uiBerserkTimer -= uiDiff;
-        }
-
-        DoMeleeAttackIfReady();
-    }
-};
-
-CreatureAI* GetAI_boss_eydis(Creature* pCreature)
-{
-    return new boss_eydisAI(pCreature);
 }
 
 /*######
