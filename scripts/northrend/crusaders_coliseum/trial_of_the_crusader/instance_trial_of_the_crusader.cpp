@@ -173,6 +173,7 @@ void instance_trial_of_the_crusader::OnCreatureCreate(Creature* pCreature)
     switch (pCreature->GetEntry())
     {
         case NPC_FIZZLEBANG:
+        case NPC_FJOLA:
             DoUseDoorOrButton(GO_MAIN_GATE);
         case NPC_TIRION_A:
         case NPC_TIRION_B:
@@ -180,7 +181,6 @@ void instance_trial_of_the_crusader::OnCreatureCreate(Creature* pCreature)
         case NPC_GARROSH:
         case NPC_JARAXXUS:
         case NPC_OPEN_PORTAL_TARGET:
-        case NPC_FJOLA:
         case NPC_EYDIS:
         case NPC_WORLD_TRIGGER_LARGE:
         case NPC_THE_LICHKING:

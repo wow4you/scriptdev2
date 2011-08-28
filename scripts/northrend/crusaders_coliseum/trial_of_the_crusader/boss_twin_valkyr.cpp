@@ -285,7 +285,11 @@ struct MANGOS_DLL_DECL boss_fjolaAI : public ScriptedAI
         m_creature->SetInCombatWithZone();
 
         if (m_pInstance)
+        {
             m_pInstance->SetData(TYPE_TWIN_VALKYR, IN_PROGRESS);
+            // Possibly not the correct place, but close gate here
+            m_pInstance->DoUseDoorOrButton(GO_MAIN_GATE);
+        }
     }
 
     void DamageTaken(Unit* /*pDealer*/, uint32& uiDamage) override
