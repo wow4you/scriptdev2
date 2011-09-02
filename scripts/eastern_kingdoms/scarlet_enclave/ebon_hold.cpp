@@ -1715,7 +1715,7 @@ struct MANGOS_DLL_DECL npc_highlord_darion_mograineAI : public npc_escortAI
 
     void MovementInform(uint32 uiMotionType, uint32 uiPointId)
     {
-        if (uiPointId < POINT_MOVE_CHAPEL)
+        if (uiPointId < POINT_MOVE_CHAPEL || uiPointId > 10*POINT_MOVE_RETURN_BATTLE)
         {
             npc_escortAI::MovementInform(uiMotionType, uiPointId);
             return;
