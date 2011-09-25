@@ -35,7 +35,7 @@ enum
     SPELL_CRUSH                     = 49639,
     SPELL_INFECTED_WOUND            = 49637,
     SPELL_CORPSE_EXPLODE            = 49555,
-    SPELL_CORPSE_EXPLODE_H          = 59087,
+    SPELL_CORPSE_EXPLODE_H          = 59807,
     SPELL_CONSUME                   = 49380,
     SPELL_CONSUME_H                 = 59803,
     SPELL_CONSUME_BUFF              = 49381,            // used to measure the achiev
