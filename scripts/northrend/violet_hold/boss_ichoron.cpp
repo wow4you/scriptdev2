@@ -183,7 +183,7 @@ struct MANGOS_DLL_DECL boss_ichoronAI : public ScriptedAI
         {
             if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
             {
-                if (DoCastSpellIfCan(pTarget, m_bIsRegularMode ? SPELL_WATER_BLAST : SPELL_WATER_BLAST_H))
+                if (DoCastSpellIfCan(pTarget, m_bIsRegularMode ? SPELL_WATER_BLAST : SPELL_WATER_BLAST_H) == CAST_OK)
                     m_uiWaterBlastTimer = urand(10000, 15000);
             }
         }
