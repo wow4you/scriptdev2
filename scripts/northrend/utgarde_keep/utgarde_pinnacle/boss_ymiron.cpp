@@ -87,7 +87,8 @@ enum
 
 struct BoatSpirits
 {
-    uint32 uiSpiritSpell, uiSpiritTarget, uiYellId;
+    uint32 uiSpiritSpell, uiSpiritTarget;
+    int32 iiYellId;
     uint8 uiBoatPhase;
     float fMovePosX, fMovePosY, fMovePosZ;
 };
@@ -241,7 +242,7 @@ struct MANGOS_DLL_DECL boss_ymironAI : public ScriptedAI
             return;
 
         DoCastSpellIfCan(m_creature, SPELL_CHANNEL_YMIRON_SPIRIT);
-        DoScriptText(aYmironBoatsSpirits[m_uiPhase - 1].uiYellId, m_creature);
+        DoScriptText(aYmironBoatsSpirits[m_uiPhase - 1].iiYellId, m_creature);
         SetCombatMovement(true);
         m_bIsChannelingSpirit = false;
 
