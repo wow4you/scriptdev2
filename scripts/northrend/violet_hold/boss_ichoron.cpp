@@ -71,6 +71,7 @@ struct MANGOS_DLL_DECL boss_ichoronAI : public ScriptedAI
     uint32 m_uiWaterBoltVolleyTimer;
     uint32 m_uiWaterBlastTimer;
     uint32 m_uiBubbleTimer;
+    uint32 m_uiGlobuleCount;
     bool m_bIsFrenzy;
 
     void Reset()
@@ -79,8 +80,8 @@ struct MANGOS_DLL_DECL boss_ichoronAI : public ScriptedAI
         m_uiWaterBoltVolleyTimer = urand(10000, 15000);
         m_uiWaterBlastTimer      = urand(10000, 20000);
         m_uiBubbleTimer          = 0;
+        m_uiGlobuleCount         = 0;
 
-        m_creature->SetVisibility(VISIBILITY_ON);
         m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
     }
 
@@ -109,6 +110,22 @@ struct MANGOS_DLL_DECL boss_ichoronAI : public ScriptedAI
         }
     }
 
+    void JustSummonedGlobule()
+    {
+        ++m_uiGlobuleCount;
+    }
+
+    void SummonedGlobuleJustDied()
+    {
+        if (m_uiGlobuleCount)
+        {
+            --m_uiGlobuleCount;
+
+            if (!m_uiGlobuleCount)                          // All killed
+                m_uiBubbleTimer = 1;
+        }
+    }
+
     void UpdateAI(const uint32 uiDiff)
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
@@ -119,7 +136,7 @@ struct MANGOS_DLL_DECL boss_ichoronAI : public ScriptedAI
             if (m_uiBubbleTimer <= uiDiff)
             {
                 m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-                m_creature->SetVisibility(VISIBILITY_ON);
+                m_creature->RemoveAurasDueToSpell(SPELL_DRAINED);
 
                 if (m_creature->GetHealthPercent() > 25.0f)
                 {
@@ -159,7 +176,6 @@ struct MANGOS_DLL_DECL boss_ichoronAI : public ScriptedAI
             // remove some hp from boss and set it unselectable
             m_creature->SetHealth(m_creature->GetHealth() - m_creature->GetMaxHealth() * 0.3f);
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-            m_creature->SetVisibility(VISIBILITY_OFF);
             m_uiBubbleTimer = 15000;
         }
 
@@ -184,7 +200,7 @@ struct MANGOS_DLL_DECL boss_ichoronAI : public ScriptedAI
 
         if (!m_bIsFrenzy && m_creature->GetHealthPercent() < 25.0f)
         {
-            if (DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_FRENZY : SPELL_FRENZY_H) == CAST_OK)
+            if (DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_FRENZY : SPELL_FRENZY_H, CAST_TRIGGERED) == CAST_OK)
             {
                 DoScriptText(SAY_ENRAGE, m_creature);
                 m_bIsFrenzy = true;
@@ -227,7 +243,19 @@ struct MANGOS_DLL_DECL npc_ichoron_summon_triggerAI : public ScriptedAI
                     return;
 
                 pSummoned->GetMotionMaster()->MovePoint(POINT_ID_ICHORON, pBoss->GetPositionX(), pBoss->GetPositionY(), pBoss->GetPositionZ());
+
+                if (boss_ichoronAI* pIchoAi = dynamic_cast<boss_ichoronAI*>(pBoss->AI()))
+                    pIchoAi->JustSummonedGlobule();
             }
+        }
+    }
+
+    void SummonedCreatureJustDied(Creature* pSummoned)
+    {
+        if (Creature* pBoss = m_pInstance->GetSingleCreatureFromStorage(m_pInstance->GetData(TYPE_ICHORON) != DONE ? NPC_ICHORON : NPC_SWIRLING))
+        {
+            if (boss_ichoronAI* pIchoAi = dynamic_cast<boss_ichoronAI*>(pBoss->AI()))
+                pIchoAi->SummonedGlobuleJustDied();
         }
     }
 
@@ -243,6 +271,7 @@ struct MANGOS_DLL_DECL npc_ichoron_summon_triggerAI : public ScriptedAI
                 if (!pBoss->isAlive())
                     return;
 
+                // Set Achievement as failed
                 m_pInstance->SetData(TYPE_ICHORON, SPECIAL);
 
                 // despawn globule and modify boss hp - workaround because of the missing script effect of the spell
