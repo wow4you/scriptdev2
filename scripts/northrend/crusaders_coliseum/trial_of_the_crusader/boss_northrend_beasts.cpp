@@ -1060,7 +1060,6 @@ struct MANGOS_DLL_DECL boss_icehowlAI : public ScriptedAI
                     case 3:
                         if (m_bMovementStarted)
                         {
-                            Map* pMap = m_creature->GetMap();
                             Map::PlayerList const& lPlayers = m_creature->GetMap()->GetPlayers();
                             if (lPlayers.isEmpty())
                                 return;
