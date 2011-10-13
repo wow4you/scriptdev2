@@ -651,7 +651,7 @@ struct MANGOS_DLL_DECL boss_yogg_saronAI : public ScriptedAI
             if (PlayerList.isEmpty())
                 return;
 
-            SpellEntry* spell = (SpellEntry*)GetSpellStore()->LookupEntry(SPELL_SANITY);
+            //SpellEntry* spell = (SpellEntry*)GetSpellStore()->LookupEntry(SPELL_SANITY);
             for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
             {
                 if (i->getSource()->isAlive())

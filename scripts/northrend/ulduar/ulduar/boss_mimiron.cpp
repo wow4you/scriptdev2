@@ -1035,7 +1035,7 @@ struct MANGOS_DLL_DECL boss_aerial_command_unitAI : public ScriptedAI
         {
             if (m_uiSummonWavesTimer < uiDiff)
             {
-                uint32 m_uiCreatureEntry;
+                uint32 m_uiCreatureEntry = 0;
                 // summon emergency boots
                 if (m_pInstance->GetData(TYPE_MIMIRON_HARD) == IN_PROGRESS)
                 {
