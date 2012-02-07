@@ -531,7 +531,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
         m_uiMaxHarpoons = m_bIsRegularMode ? 2 : 4;
         //if (m_pInstance->m_lBreakHarpoonGUID.size() != m_uiMaxHarpoons)
         //m_creature->MonsterSay("Fehler in der Suche der Harpoonen", LANG_UNIVERSAL);
-        BreakHarpoons();
+        //BreakHarpoons();
 
         ResetAirPhase();
         ResetGroundPhase();
@@ -574,7 +574,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
         if (m_pInstance)
             m_pInstance->SetData(TYPE_RAZORSCALE, DONE);
 
-        BreakHarpoons();
+        //BreakHarpoons();
     }
 
     void Aggro(Unit* pWho)
@@ -593,8 +593,8 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
                 ++m_uiScorchedDwarves;
                 if (m_uiScorchedDwarves > 25)
                 {
-                    if (m_pInstance)
-                        m_pInstance->SetSpecialAchievementCriteria(TYPE_ACHIEV_IRON_DWARF_MEDIUM_RARE, true);
+                    //if (m_pInstance)
+                    //    m_pInstance->SetSpecialAchievementCriteria(TYPE_ACHIEV_IRON_DWARF_MEDIUM_RARE, true);
                 }
                 m_creature->DealDamage(pTarget, pTarget->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
             }
@@ -607,6 +607,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
             m_pInstance->SetData(TYPE_RAZORSCALE, FAIL);
     }
 
+    /*
     void BreakHarpoons()
     {
         // reset harpoons
@@ -637,13 +638,13 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
 
     void RepairHarpoons()
     {
-        if (GameObject* pHarpoon = m_creature->GetMap()->GetGameObject(m_pInstance->m_lBreakHarpoonGUID.at(m_uiHarpoonsRepaired)))
+        if(GameObject* pHarpoon = m_creature->GetMap()->GetGameObject(m_pInstance->m_lBreakHarpoonGUID.at(m_uiHarpoonsRepaired)))
         {
-            switch (m_uiHarpoonsRepaired)
+            switch(m_uiHarpoonsRepaired)
             {
                 case 0:
                 {
-                    if (GameObject* pRepairHarpoon =  pHarpoon->SummonGameobject(GO_REPAIR_HARPOON_1, pHarpoon->GetPositionX(), pHarpoon->GetPositionY(), pHarpoon->GetPositionZ(), 4.732974f, 0))
+                    if (GameObject* pRepairHarpoon =  pHarpoon->SummonGameobject(GO_REPAIR_HARPOON_1, pHarpoon->GetPositionX(),pHarpoon->GetPositionY(),pHarpoon->GetPositionZ(), 4.732974f, 0))
                     {
                         m_lRepairHarpoonsGUID.push_back(pRepairHarpoon->GetObjectGuid());
                     }
@@ -651,7 +652,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
                 }
                 case 1:
                 {
-                    if (GameObject* pRepairHarpoon =  pHarpoon->SummonGameobject(GO_REPAIR_HARPOON_2, pHarpoon->GetPositionX(), pHarpoon->GetPositionY(), pHarpoon->GetPositionZ(), 5.269379f, 0))
+                    if (GameObject* pRepairHarpoon =  pHarpoon->SummonGameobject(GO_REPAIR_HARPOON_2, pHarpoon->GetPositionX(),pHarpoon->GetPositionY(),pHarpoon->GetPositionZ(), 5.269379f, 0))
                     {
                         m_lRepairHarpoonsGUID.push_back(pRepairHarpoon->GetObjectGuid());
                     }
@@ -659,25 +660,25 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
                 }
                 case 2:
                 {
-                    if (GameObject* pRepairHarpoon =  pHarpoon->SummonGameobject(GO_REPAIR_HARPOON_3, pHarpoon->GetPositionX(), pHarpoon->GetPositionY(), pHarpoon->GetPositionZ(), pHarpoon->GetOrientation(), 0))
+                    if (GameObject* pRepairHarpoon =  pHarpoon->SummonGameobject(GO_REPAIR_HARPOON_3, pHarpoon->GetPositionX(),pHarpoon->GetPositionY(),pHarpoon->GetPositionZ(), pHarpoon->GetOrientation(), 0))
                         m_lRepairHarpoonsGUID.push_back(pRepairHarpoon->GetObjectGuid());
                     break;
                 }
                 case 3:
                 {
-                    if (GameObject* pRepairHarpoon =  pHarpoon->SummonGameobject(GO_REPAIR_HARPOON_4, pHarpoon->GetPositionX(), pHarpoon->GetPositionY(), pHarpoon->GetPositionZ(), pHarpoon->GetAngle(m_creature), 0))
+                    if (GameObject* pRepairHarpoon =  pHarpoon->SummonGameobject(GO_REPAIR_HARPOON_4, pHarpoon->GetPositionX(),pHarpoon->GetPositionY(),pHarpoon->GetPositionZ(), pHarpoon->GetAngle(m_creature), 0))
                         m_lRepairHarpoonsGUID.push_back(pRepairHarpoon->GetObjectGuid());
                     break;
                 }
             }
-            if (Creature* pHarpoonDummy = pHarpoon->SummonCreature(NPC_HARPOONS_DUMMY, pHarpoon->GetPositionX(), pHarpoon->GetPositionY(), pHarpoon->GetPositionZ(), 0 , TEMPSUMMON_DEAD_DESPAWN, 0))
+            if (Creature* pHarpoonDummy = pHarpoon->SummonCreature(NPC_HARPOONS_DUMMY, pHarpoon->GetPositionX(), pHarpoon->GetPositionY(), pHarpoon->GetPositionZ(),0 , TEMPSUMMON_DEAD_DESPAWN, 0))
             {
                 m_lHarpoonsDummyGUID.push_back(pHarpoonDummy->GetObjectGuid());
             }
-            pHarpoon->SetPhaseMask(128, true);
+            pHarpoon->SetPhaseMask(128,true);
         }
     }
-
+    */
     void SetToGroundPhase()
     {
         if (Creature* pCommander = m_pInstance->GetSingleCreatureFromStorage(NPC_COMMANDER))
@@ -710,8 +711,8 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
         m_uiFlyNo++;
         if (m_uiFlyNo > 1)
         {
-            if (m_pInstance)
-                m_pInstance->SetSpecialAchievementCriteria(TYPE_ACHIEV_QUICK_SHAVE, false);
+            //if (m_pInstance)
+            //    m_pInstance->SetSpecialAchievementCriteria(TYPE_ACHIEV_QUICK_SHAVE, false);
         }
     }
 
@@ -729,7 +730,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
         m_uiFlameBreathTimer      = 6000;  //every 14
 
         SetCombatMovement(true);
-        BreakHarpoons();
+        //BreakHarpoons();
 
         //  make boss land
         m_creature->SetLevitate(false);
@@ -785,12 +786,13 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
                 // repair harpoons
                 if (m_uiRepairHarpoonTimer < uiDiff)
                 {
+                    /*
                     if (m_uiHarpoonsRepaired < m_uiMaxHarpoons && m_uiHarpoonsRepaired < m_pInstance->m_lBreakHarpoonGUID.size()) // i know the double check
                     {
                         RepairHarpoons();
                         ++m_uiHarpoonsRepaired;
                         DoScriptText(EMOTE_HARPOON_READY, m_creature);
-                    }
+                    }*/
                     m_uiRepairHarpoonTimer = 20000;
                 }
                 else
@@ -818,7 +820,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
                             break;
                         case 2:
                             DoCast(m_creature, SPELL_WING_BUFFET);
-                            BreakHarpoons();
+                            //BreakHarpoons();
                             m_uiGroundStepTimer = 4000;
                             break;
                         case 3:
