@@ -581,7 +581,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
     {
         if (m_pInstance)
             m_pInstance->SetData(TYPE_RAZORSCALE, IN_PROGRESS);
-        m_creature->MonsterMoveWithSpeed(PositionLoc[4].x, PositionLoc[4].y, PositionLoc[4].z, 28);
+        m_creature->MonsterMoveWithSpeed(PositionLoc[4].x, PositionLoc[4].y, PositionLoc[4].z, 28.0f, false, true);
     }
 
     void SpellHitTarget(Unit* pTarget, const SpellEntry* pSpell)
@@ -689,7 +689,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
         m_creature->SetByteValue(UNIT_FIELD_BYTES_1, 3, 0);
 
         // ground position
-        m_creature->MonsterMoveWithSpeed(PositionLoc[3].x, PositionLoc[3].y, PositionLoc[3].z, 40.0f);
+        m_creature->MonsterMoveWithSpeed(PositionLoc[3].x, PositionLoc[3].y, PositionLoc[3].z, 40.0f, false, true);
 
         m_razorscalePhase = PHASE_GROUND;
         ResetGroundPhase();
@@ -730,6 +730,8 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
         m_uiFlameBreathTimer      = 6000;  //every 14
 
         SetCombatMovement(true);
+        if (m_creature->getVictim())
+            m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
         //BreakHarpoons();
 
         //  make boss land
