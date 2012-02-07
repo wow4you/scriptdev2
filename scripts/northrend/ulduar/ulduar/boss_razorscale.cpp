@@ -16,7 +16,7 @@
 
 /* ScriptData
 SDName: boss_razorscale
-SD%Complete:
+SD%Complete: 0%
 SDComment: harpoons display should change when clicked
 SDCategory: Ulduar
 EndScriptData */
@@ -26,71 +26,71 @@ EndScriptData */
 
 enum
 {
-    //yells/emotes
-    SAY_INTRO               = -1603030,
-    SAY_AGGRO1              = -1603031,
-    SAY_AGGRO2              = -1603032,
-    SAY_AGGRO3              = -1603033,
-    SAY_GROUND              = -1603034,
-    EMOTE_DEEP_BREATH       = -1603035,
-    SAY_FIRES_EXTINGUISH    = -1603036,
-    EMOTE_HARPOON           = -1603337,
-    EMOTE_GROUNDED          = -1603338,
+    SAY_INTRO_WELCOME                   = -1603036,
+    SAY_INTRO_1                         = -1603037,
+    SAY_INTRO_2                         = -1603038,
+    SAY_INTRO_3                         = -1603039,
+    SAY_GROUNDED                        = -1603040,
+    SAY_EXTINGUISH_FIRE                 = -1603041,
+
+    EMOTE_BREATH                        = -1603042,
+    EMOTE_HARPOON_READY                 = -1603043,
+    EMOTE_GROUNDED                      = -1603044,
 
     //razorscale air phase
-    SPELL_FIREBALL              = 62796,
-    SPELL_FIREBALL_H            = 63815,
-    SPELL_WING_BUFFET           = 62666,
-    SPELL_STUN                  = 62794,
-    SPELL_SUMMON_DWARF          = 62916,
+    SPELL_FIREBALL                      = 62796,
+    SPELL_FIREBALL_H                    = 63815,
+    SPELL_WING_BUFFET                   = 62666,
+    SPELL_STUN                          = 62794,
+    SPELL_SUMMON_DWARF                  = 62916,
     //both
-    SPELL_BERSERK               = 47008,
-    DEVOURING_FLAME_MISSILE     = 63236,
-    SPELL_FLAME_BREATH          = 63317,
-    SPELL_FLAME_BREATH_H        = 64021,
-    NPC_CONTROLLER              = 33233,  // used for casting deep breath on turrets
+    SPELL_BERSERK                       = 47008,
+    DEVOURING_FLAME_MISSILE             = 63236,
+    SPELL_FLAME_BREATH                  = 63317,
+    SPELL_FLAME_BREATH_H                = 64021,
+    NPC_CONTROLLER                      = 33233,            // used for casting deep breath on turrets
     //ground
-    SPELL_FLAME_BUFFET          = 64016,
-    SPELL_FLAME_BUFFET_H        = 64023,
-    SPELL_FUSE_ARMOR            = 64771,
+    SPELL_FLAME_BUFFET                  = 64016,
+    SPELL_FLAME_BUFFET_H                = 64023,
+    SPELL_FUSE_ARMOR                    = 64771,
 
     //devouring flame target
-    NPC_DEVOURING_TARGET        = 34188,
-    NPC_DEVOURING_TARGET_H      = 34189,
-    AURA_DEVOURING_FLAME        = 64709,
-    AURA_DEVOURING_FLAME_H      = 64734,
+    NPC_DEVOURING_TARGET                = 34188,
+    NPC_DEVOURING_TARGET_H              = 34189,
+    AURA_DEVOURING_FLAME                = 64709,
+    AURA_DEVOURING_FLAME_H              = 64734,
 
     // mole machine
-    NPC_MOLE_MACHINE            = 33245,    // used to summon adds in phase 1
-    NPC_HARPOONS_DUMMY          = 33282,    // used to cast spells for harpoons
-    SPELL_SUMMON_MOLE_MACHINE   = 73071,
+    NPC_MOLE_MACHINE                    = 33245,            // used to summon adds in phase 1
+    NPC_HARPOONS_DUMMY                  = 33282,            // used to cast spells for harpoons
+    SPELL_SUMMON_MOLE_MACHINE           = 73071,
 
     // harpoons
-    SPELL_HARPOON_SHOT          = 63659,
-    GO_REPAIR_HARPOON_4         = 194543, // BROKEN HARBOON 194565
-    GO_REPAIR_HARPOON_3         = 194542,
-    GO_REPAIR_HARPOON_2         = 194541,
-    GO_REPAIR_HARPOON_1         = 194519,
+    SPELL_HARPOON_SHOT                  = 63659,
+    GO_REPAIR_HARPOON_4                 = 194543,           // BROKEN HARBOON 194565
+    GO_REPAIR_HARPOON_3                 = 194542,
+    GO_REPAIR_HARPOON_2                 = 194541,
+    GO_REPAIR_HARPOON_1                 = 194519,
     //dark rune watcher
-    SPELL_LIGHTNING_BOLT        = 63809,
-    SPELL_LIGHTNING_BOLT_H      = 64696,
-    SPELL_CHAIN_LIGHTNING       = 64758,
-    SPELL_CHAIN_LIGHTNING_H     = 64759,
+    SPELL_LIGHTNING_BOLT                = 63809,
+    SPELL_LIGHTNING_BOLT_H              = 64696,
+    SPELL_CHAIN_LIGHTNING               = 64758,
+    SPELL_CHAIN_LIGHTNING_H             = 64759,
 
     //dark rune sentinel
-    SPELL_BATTLE_SHOUT          = 46763,
-    SPELL_BATTLE_SHOUT_H        = 64062,
-    SPELL_WHIRLWIND             = 63808,
+    SPELL_BATTLE_SHOUT                  = 46763,
+    SPELL_BATTLE_SHOUT_H                = 64062,
+    SPELL_WHIRLWIND                     = 63808,
 
     //dark rune guardian
-    SPELL_STORMSTRIKE           = 64757,
+    SPELL_STORMSTRIKE                   = 64757,
 
     //NPC ids
-    MOB_DARK_RUNE_WATCHER       = 33453,
-    MOB_DARK_RUNE_SENTINEL      = 33846,
-    MOB_DARK_RUNE_GUARDIAN      = 33388,
+    MOB_DARK_RUNE_WATCHER               = 33453,
+    MOB_DARK_RUNE_SENTINEL              = 33846,
+    MOB_DARK_RUNE_GUARDIAN              = 33388,
 
-    NPC_EXP_ENGINEER            = 33287,
+    NPC_EXP_ENGINEER                    = 33287,
 };
 
 //Positional defines
@@ -153,21 +153,18 @@ struct MANGOS_DLL_DECL npc_expedition_commanderAI : public ScriptedAI
     {
         if (!m_bHasPlayerNear && m_creature->IsWithinDistInMap(pWho, 40.0f))
         {
-            DoScriptText(SAY_INTRO, m_creature);
+            DoScriptText(SAY_INTRO_WELCOME, m_creature);
             m_bHasPlayerNear = true;
         }
     }
 
     void GetRazorDown()
     {
-        if (Creature* pTemp = m_pInstance->GetSingleCreatureFromStorage(NPC_RAZORSCALE))
+        if (Creature* pRazorscale = m_pInstance->GetSingleCreatureFromStorage(NPC_RAZORSCALE))
         {
-            pTemp->SetInCombatWithZone();
-            if (Unit* pPlayer = m_creature->GetMap()->GetUnit(m_uiPlayerGUID))
-            {
-                pTemp->AddThreat(pPlayer, 0.0f);
-                pTemp->AI()->AttackStart(pPlayer);
-            }
+            if (Player* pPlayer = m_creature->GetMap()->GetPlayer(m_uiPlayerGUID))
+                pRazorscale->AI()->AttackStart(pPlayer);
+            pRazorscale->SetInCombatWithZone(); // obsolete with flags_extra
         }
     }
 
@@ -189,19 +186,19 @@ struct MANGOS_DLL_DECL npc_expedition_commanderAI : public ScriptedAI
                 {
                     case 0:
                         if (Creature* pEngineer = GetClosestCreatureWithEntry(m_creature, NPC_EXP_ENGINEER, 50.0f))
-                            DoScriptText(SAY_AGGRO1, pEngineer);
+                            DoScriptText(SAY_INTRO_1, pEngineer);
                         GetRazorDown();
                         ++m_uiIntro_Phase;
                         m_uiSpeech_Timer = 5000;
                         break;
                     case 1:
-                        DoScriptText(SAY_AGGRO2, m_creature);
+                        DoScriptText(SAY_INTRO_2, m_creature);
                         ++m_uiIntro_Phase;
                         m_uiSpeech_Timer = 7000;
                         break;
                     case 2:
                         if (Creature* pEngineer = GetClosestCreatureWithEntry(m_creature, NPC_EXP_ENGINEER, 50.0f))
-                            DoScriptText(SAY_AGGRO3, pEngineer);
+                            DoScriptText(SAY_INTRO_3, pEngineer);
                         ++m_uiIntro_Phase;
                         m_uiSpeech_Timer = 5000;
                         break;
@@ -670,7 +667,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
     void SetToGroundPhase()
     {
         if (Creature* pCommander = m_pInstance->GetSingleCreatureFromStorage(NPC_COMMANDER))
-            DoScriptText(SAY_GROUND, pCommander);
+            DoScriptText(SAY_GROUNDED, pCommander);
 
         // make boss land
         m_creature->SetLevitate(false);
@@ -689,7 +686,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
     void SetToAirPhase()
     {
         if (Creature* pCommander = m_pInstance->GetSingleCreatureFromStorage(NPC_COMMANDER))
-            DoScriptText(SAY_FIRES_EXTINGUISH, pCommander);
+            DoScriptText(SAY_EXTINGUISH_FIRE, pCommander);
         //  make boss fly
         m_creature->SetLevitate(true);
         m_creature->SetByteValue(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_UNK_2);
@@ -778,7 +775,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
                 {
                     RepairHarpoons();
                     ++m_uiHarpoonsRepaired;
-                    DoScriptText(EMOTE_HARPOON, m_creature);
+                    DoScriptText(EMOTE_HARPOON_READY, m_creature);
                     m_uiRepairHarpoonTimer = 20000;
                 }
                 else
@@ -800,7 +797,7 @@ struct MANGOS_DLL_DECL boss_razorscaleAI : public ScriptedAI
                             if (Creature* pCommander = m_pInstance->GetSingleCreatureFromStorage(NPC_COMMANDER))
                                 m_creature->SetFacingToObject(pCommander);
                             m_creature->RemoveAurasDueToSpell(SPELL_STUN);
-                            DoScriptText(EMOTE_DEEP_BREATH, m_creature);
+                            DoScriptText(EMOTE_BREATH, m_creature);
                             DoCast(m_creature, m_bIsRegularMode ? SPELL_FLAME_BREATH : SPELL_FLAME_BREATH_H);
                             m_uiGroundStepTimer    = 7000;
                             break;
