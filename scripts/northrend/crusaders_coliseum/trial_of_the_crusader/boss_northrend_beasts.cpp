@@ -266,6 +266,8 @@ struct MANGOS_DLL_DECL boss_gormokAI : public ScriptedAI
     uint32 m_uiStompTimer;
     uint32 m_uiImpaleTimer;
 
+    GuidList m_lSummonedSnowbolds;
+
     void Reset() override
     {
         m_uiStompTimer      = urand(20000, 25000);
@@ -286,12 +288,27 @@ struct MANGOS_DLL_DECL boss_gormokAI : public ScriptedAI
         }
     }
 
+    void JustSummoned(Creature* pSummoned) override
+    {
+        if (pSummoned->GetEntry() == NPC_SNOBOLD_VASSAL)
+            m_lSummonedSnowbolds.push_back(pSummoned->GetObjectGuid());
+    }
+
     void JustReachedHome() override
     {
+        for (GuidList::const_iterator itr = m_lSummonedSnowbolds.begin(); itr != m_lSummonedSnowbolds.end(); ++itr)
+            if (Creature* pSnowbold = m_creature->GetMap()->GetCreature(*itr))
+                pSnowbold->ForcedDespawn();
+        m_lSummonedSnowbolds.clear();
     }
 
     void Aggro(Unit* /*pWho*/) override
     {
+    }
+
+    void JustDied(Unit* /*pKiller*/) override
+    {
+        JustReachedHome();                                  // despawn snowbolds
     }
 
     void DamageTaken(Unit* /*pDealer*/, uint32& /*uiDamage*/) override
@@ -309,7 +326,7 @@ struct MANGOS_DLL_DECL boss_gormokAI : public ScriptedAI
                     // buff boss
                     DoCastSpellIfCan(m_creature, SPELL_RISING_ANGER);
                     // workaround for summoning snobolds
-                    if (Creature* pSnobold = m_creature->SummonCreature(NPC_SNOBOLD_VASSAL, pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 24000))
+                    if (Creature* pSnobold = m_creature->SummonCreature(NPC_SNOBOLD_VASSAL, pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(), 0, TEMPSUMMON_DEAD_DESPAWN, 0))
                     {
                         pSnobold->AddThreat(pTarget, 100.0f);
                         m_uiSnoboldNo += 1;
