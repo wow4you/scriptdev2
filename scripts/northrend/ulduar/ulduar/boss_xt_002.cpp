@@ -334,9 +334,9 @@ struct MANGOS_DLL_DECL boss_xt002AI : public ScriptedAI
     ScriptedInstance* m_pInstance;
     bool m_bIsRegularMode;
 
-    GUIDList m_lScrapbotsGuids;
-    GUIDList m_lBoombotsGuids;
-    GUIDList m_lPummelerGuids;
+    GuidList m_lScrapbotsGuids;
+    GuidList m_lBoombotsGuids;
+    GuidList m_lPummelerGuids;
 
     // spell timers
     uint32 m_uiHeart_Timer;
@@ -432,19 +432,19 @@ struct MANGOS_DLL_DECL boss_xt002AI : public ScriptedAI
 
         if (!m_lScrapbotsGuids.empty())
         {
-            for (GUIDList::iterator itr = m_lScrapbotsGuids.begin(); itr != m_lScrapbotsGuids.end(); ++itr)
+            for (GuidList::iterator itr = m_lScrapbotsGuids.begin(); itr != m_lScrapbotsGuids.end(); ++itr)
                 if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                     pTemp->ForcedDespawn();
         }
         if (!m_lBoombotsGuids.empty())
         {
-            for (GUIDList::iterator itr = m_lBoombotsGuids.begin(); itr != m_lBoombotsGuids.end(); ++itr)
+            for (GuidList::iterator itr = m_lBoombotsGuids.begin(); itr != m_lBoombotsGuids.end(); ++itr)
                 if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                     pTemp->ForcedDespawn();
         }
         if (!m_lPummelerGuids.empty())
         {
-            for (GUIDList::iterator itr = m_lPummelerGuids.begin(); itr != m_lPummelerGuids.end(); ++itr)
+            for (GuidList::iterator itr = m_lPummelerGuids.begin(); itr != m_lPummelerGuids.end(); ++itr)
                 if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                     pTemp->ForcedDespawn();
         }
@@ -570,7 +570,7 @@ struct MANGOS_DLL_DECL boss_xt002AI : public ScriptedAI
         {
             if (!m_lScrapbotsGuids.empty())
             {
-                for (GUIDList::iterator itr = m_lScrapbotsGuids.begin(); itr != m_lScrapbotsGuids.end(); ++itr)
+                for (GuidList::iterator itr = m_lScrapbotsGuids.begin(); itr != m_lScrapbotsGuids.end(); ++itr)
                 {
                     if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                     {
@@ -586,7 +586,7 @@ struct MANGOS_DLL_DECL boss_xt002AI : public ScriptedAI
             }
             if (!m_lBoombotsGuids.empty())
             {
-                for (GUIDList::iterator itr = m_lBoombotsGuids.begin(); itr != m_lBoombotsGuids.end(); ++itr)
+                for (GuidList::iterator itr = m_lBoombotsGuids.begin(); itr != m_lBoombotsGuids.end(); ++itr)
                 {
                     if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                     {

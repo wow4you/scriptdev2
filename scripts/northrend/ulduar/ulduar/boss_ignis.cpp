@@ -184,7 +184,7 @@ struct MANGOS_DLL_DECL boss_ignisAI : public ScriptedAI
     instance_ulduar* m_pInstance;
     bool m_bIsRegularMode;
 
-    GUIDList m_lIronConstructGuids;
+    GuidList m_lIronConstructGuids;
 
     uint32 m_uiBerserkTimer;
     uint32 m_uiFlameJetsTimer;
@@ -203,7 +203,7 @@ struct MANGOS_DLL_DECL boss_ignisAI : public ScriptedAI
         // respawn dead constructs
         if (!m_lIronConstructGuids.empty())
         {
-            for (GUIDList::iterator itr = m_lIronConstructGuids.begin(); itr != m_lIronConstructGuids.end(); ++itr)
+            for (GuidList::iterator itr = m_lIronConstructGuids.begin(); itr != m_lIronConstructGuids.end(); ++itr)
             {
                 if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
                 {
