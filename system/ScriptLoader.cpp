@@ -8,6 +8,7 @@
 extern void AddSC_battleground();
 
 // custom
+extern void AddSC_wow4you_tabard();
 
 // examples
 extern void AddSC_example_creature();
@@ -471,6 +472,7 @@ void AddScripts()
     AddSC_battleground();
 
     // custom
+    AddSC_wow4you_tabard();
 
     // examples
     AddSC_example_creature();

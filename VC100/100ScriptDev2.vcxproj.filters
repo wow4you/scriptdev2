@@ -1660,6 +1660,9 @@
     <ClCompile Include="..\scripts\northrend\ruby_sanctum\instance_ruby_sanctum.cpp">
       <Filter>scripts\northrend\ruby_sanctum</Filter>
     </ClCompile>
+    <ClCompile Include="..\scripts\custom\tabard4you.cpp">
+      <Filter>scripts\custom</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\base\escort_ai.h">
