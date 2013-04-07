@@ -173,6 +173,7 @@ void instance_trial_of_the_crusader::OnCreatureCreate(Creature* pCreature)
     switch (pCreature->GetEntry())
     {
         case NPC_FIZZLEBANG:
+        case NPC_FJOLA:
             DoUseDoorOrButton(GO_MAIN_GATE);
         case NPC_TIRION_A:
         case NPC_TIRION_B:
@@ -185,6 +186,10 @@ void instance_trial_of_the_crusader::OnCreatureCreate(Creature* pCreature)
         case NPC_THE_LICHKING:
         case NPC_THE_LICHKING_VISUAL:
             break;
+        case NPC_GORMOK:
+        case NPC_DREADSCALE:
+        case NPC_ICEHOWL:
+            DoUseDoorOrButton(GO_MAIN_GATE);
         default:
             return;
     }
@@ -287,7 +292,14 @@ void instance_trial_of_the_crusader::SetData(uint32 uiType, uint32 uiData)
             break;
         case TYPE_FACTION_CHAMPIONS:
             if (uiData == SPECIAL)
-                StartNextDialogueText(m_auiEncounter[uiType] != FAIL ? SAY_TIRION_PVP_INTRO_1 : TYPE_FACTION_CHAMPIONS);
+            {
+                //StartNextDialogueText(m_auiEncounter[uiType] != FAIL ? SAY_TIRION_PVP_INTRO_1 : TYPE_FACTION_CHAMPIONS);
+                // Temp workaround!
+                uiData = DONE;
+                StartNextDialogueText(NPC_RAMSEY_4);
+                if (Creature* pTirion = GetSingleCreatureFromStorage(NPC_TIRION_A))
+                    pTirion->MonsterSay("Debug: Skip Champions", 0);
+            }
             else if (uiData == FAIL)
             {
                 SetData(TYPE_WIPE_COUNT, m_auiEncounter[TYPE_WIPE_COUNT] + 1);
@@ -483,8 +495,14 @@ void instance_trial_of_the_crusader::JustDidDialogueStep(int32 iEntry)
         case EVENT_SUMMON_TWINS:
             if (Player* pPlayer = GetPlayerInMap())
             {
-                pPlayer->SummonCreature(NPC_FJOLA, aSpawnPositions[7][0], aSpawnPositions[7][1], aSpawnPositions[7][2], aSpawnPositions[7][3], TEMPSUMMON_DEAD_DESPAWN, 0);
-                pPlayer->SummonCreature(NPC_EYDIS, aSpawnPositions[8][0], aSpawnPositions[8][1], aSpawnPositions[8][2], aSpawnPositions[8][3], TEMPSUMMON_DEAD_DESPAWN, 0);
+                if (Creature* pFjola = pPlayer->SummonCreature(NPC_FJOLA, aSpawnPositions[7][0], aSpawnPositions[7][1], aSpawnPositions[7][2], aSpawnPositions[7][3], TEMPSUMMON_DEAD_DESPAWN, 0))
+                {
+                    pFjola->SummonCreature(NPC_EYDIS, aSpawnPositions[8][0], aSpawnPositions[8][1], aSpawnPositions[8][2], aSpawnPositions[8][3], TEMPSUMMON_DEAD_DESPAWN, 0);
+                    pFjola->SummonCreature(NPC_LIGHT_ESSENCE, aEssencePositions[0][0], aEssencePositions[0][1], aEssencePositions[0][2], aEssencePositions[0][3], TEMPSUMMON_DEAD_DESPAWN, 0);
+                    pFjola->SummonCreature(NPC_LIGHT_ESSENCE, aEssencePositions[1][0], aEssencePositions[1][1], aEssencePositions[1][2], aEssencePositions[1][3], TEMPSUMMON_DEAD_DESPAWN, 0);
+                    pFjola->SummonCreature(NPC_DARK_ESSENCE, aEssencePositions[2][0], aEssencePositions[2][1], aEssencePositions[2][2], aEssencePositions[2][3], TEMPSUMMON_DEAD_DESPAWN, 0);
+                    pFjola->SummonCreature(NPC_DARK_ESSENCE, aEssencePositions[3][0], aEssencePositions[3][1], aEssencePositions[3][2], aEssencePositions[3][3], TEMPSUMMON_DEAD_DESPAWN, 0);
+                }
             }
             break;
         case SAY_LKING_ANUB_INTRO_1:
