@@ -62,6 +62,13 @@ enum
     // NPC_SEEPING_FERAL_ESSENCE           = 34098,         // summoned by the feral defender on feign death
     // NPC_GUARDIAN_SWARN                  = 34034,         // summoned by spell
     NPC_FERAL_DEFENDER_STALKER          = 34096,
+
+    //sanctum sentry
+    SPELL_RIP_FLESH                = 64375,
+    SPELL_RIP_FLESH_H            = 64667,
+    SPELL_SAVAGE_POUNCE            = 64666,
+    SPELL_SAVAGE_POUNCE_H        = 64374,
+    SPELL_STRENGHT_OF_PACK        = 64369,
 };
 
 struct MANGOS_DLL_DECL boss_auriayaAI : public ScriptedAI
@@ -339,6 +346,118 @@ CreatureAI* GetAI_boss_feral_defender(Creature* pCreature)
     return new boss_feral_defenderAI(pCreature);
 }
 
+// Sanctum Sentry
+struct MANGOS_DLL_DECL mob_sanctum_sentryAI : public ScriptedAI
+{
+    mob_sanctum_sentryAI(Creature* pCreature) : ScriptedAI(pCreature)
+    {
+        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
+        m_bIsRegularMode = pCreature->GetMap()->IsRegularDifficulty();
+        Reset();
+    }
+
+    ScriptedInstance* m_pInstance;
+    bool m_bIsRegularMode;
+
+    uint32 m_uiRip_Flesh_Timer;
+    uint32 m_uiJump_Timer;
+
+    std::list<Creature*> lSentrys;
+
+    void Reset()
+    {
+        m_uiRip_Flesh_Timer = 13000;
+        m_uiJump_Timer = 0;
+
+        lSentrys.clear();
+    }
+
+    void Aggro(Unit* pWho)
+    {
+        if (m_pInstance)
+        {
+            if (Creature* pTemp = m_pInstance->GetSingleCreatureFromStorage(NPC_AURIAYA))
+            {
+                if (pTemp->isAlive())
+                    pTemp->SetInCombatWithZone();
+            }
+        }
+
+        GetCreatureListWithEntryInGrid(lSentrys, m_creature, NPC_SANCTUM_SENTRY, DEFAULT_VISIBILITY_INSTANCE);
+        if (!lSentrys.empty())
+        {
+            for (std::list<Creature*>::iterator iter = lSentrys.begin(); iter != lSentrys.end(); ++iter)
+            {
+                if ((*iter) && (*iter)->isAlive())
+                    (*iter)->SetInCombatWithZone();
+            }
+        }
+
+        DoCast(m_creature, SPELL_STRENGHT_OF_PACK);
+    }
+
+    void UpdateAI(const uint32 diff)
+    {
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+        {
+            // they should follow Auriaya, but this looks ugly!
+            if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() != FOLLOW_MOTION_TYPE)
+            {
+                Creature* pTemp = m_pInstance->GetSingleCreatureFromStorage(NPC_AURIAYA);
+                if (pTemp && pTemp->isAlive())
+                {
+                    // Calculate follow position
+                    float sX, sY, sZ, mX, mY, mZ, mO;
+                    m_creature->GetRespawnCoord(sX, sY, sZ);
+                    pTemp->GetRespawnCoord(mX, mY, mZ, &mO);
+
+                    float dx, dy, dz;
+                    dx = sX - mX;
+                    dy = sY - mY;
+                    dz = sZ - mZ;
+
+                    float dist = sqrt(dx * dx + dy * dy + dz * dz);
+                    // TODO this code needs the same distance calculation that is used for following
+                    // Atm this means we have to subtract the bounding radiuses
+                    dist = dist - m_creature->GetObjectBoundingRadius() - pTemp->GetObjectBoundingRadius();
+                    if (dist < 0.0f)
+                        dist = 0.0f;
+
+                    // Need to pass the relative angle to following
+                    float angle = atan2(dy, dx) - mO;
+                    angle = (angle >= 0) ? angle : 2 * M_PI_F + angle;
+
+                    m_creature->GetMotionMaster()->MoveFollow(pTemp, dist, angle);
+                }
+            }
+
+            return;
+        }
+
+        if (m_uiRip_Flesh_Timer < diff)
+        {
+            DoCast(m_creature->getVictim(), m_bIsRegularMode ? SPELL_RIP_FLESH : SPELL_RIP_FLESH_H);
+            m_uiRip_Flesh_Timer = 13000;
+        }
+        else m_uiRip_Flesh_Timer -= diff;
+
+        if (m_uiJump_Timer < diff)
+        {
+            if (!m_creature->IsWithinDistInMap(m_creature->getVictim(), 8) && m_creature->IsWithinDistInMap(m_creature->getVictim(), 25))
+                DoCast(m_creature->getVictim(), m_bIsRegularMode ? SPELL_SAVAGE_POUNCE : SPELL_SAVAGE_POUNCE_H);
+            m_uiJump_Timer = 1000;
+        }
+        else m_uiJump_Timer -= diff;
+
+        DoMeleeAttackIfReady();
+    }
+};
+
+CreatureAI* GetAI_mob_sanctum_sentry(Creature* pCreature)
+{
+    return new mob_sanctum_sentryAI(pCreature);
+}
+
 void AddSC_boss_auriaya()
 {
     Script* pNewScript;
@@ -351,5 +470,10 @@ void AddSC_boss_auriaya()
     pNewScript = new Script;
     pNewScript->Name = "boss_feral_defender";
     pNewScript->GetAI = &GetAI_boss_feral_defender;
+    pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "mob_sanctum_sentry";
+    pNewScript->GetAI = &GetAI_mob_sanctum_sentry;
     pNewScript->RegisterSelf();
 }

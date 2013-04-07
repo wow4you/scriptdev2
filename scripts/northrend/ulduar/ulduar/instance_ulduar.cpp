@@ -427,6 +427,70 @@ void instance_ulduar::SetData(uint32 uiType, uint32 uiData)
         case TYPE_KEEPER_MIMIRON:
             m_auiUlduarKeepers[3] = uiData;
             break;
+
+            // mini boss
+        case TYPE_RUNIC_COLOSSUS:
+            m_auiMiniBoss[0] = uiData;
+            if (uiData == DONE)
+            {
+                // Open
+                if (GameObject* pGo = GetSingleGameObjectFromStorage(GO_RUNED_STONE_DOOR))
+                    if (pGo->getLootState() == GO_READY)
+                        pGo->UseDoorOrButton();
+            }
+            else
+            {
+                // Close
+                if (GameObject* pGo = GetSingleGameObjectFromStorage(GO_RUNED_STONE_DOOR))
+                    if (pGo->getLootState() == GO_ACTIVATED)
+                        pGo->ResetDoorOrButton();
+            }
+            break;
+        case TYPE_RUNE_GIANT:
+            m_auiMiniBoss[1] = uiData;
+            if (uiData == DONE)
+            {
+                // Open
+                if (GameObject* pGo = GetSingleGameObjectFromStorage(GO_THORIM_STONE_DOOR))
+                    if (pGo->getLootState() == GO_READY)
+                        pGo->UseDoorOrButton();
+            }
+            else
+            {
+                // Close
+                if (GameObject* pGo = GetSingleGameObjectFromStorage(GO_THORIM_STONE_DOOR))
+                    if (pGo->getLootState() == GO_ACTIVATED)
+                        pGo->ResetDoorOrButton();
+            }
+            break;
+        case TYPE_LEVIATHAN_MK:
+            m_auiMiniBoss[2] = uiData;
+            break;
+        case TYPE_VX001:
+            m_auiMiniBoss[3] = uiData;
+            //if (uiData == DONE)     // just for animation :)
+            //{
+            //    for(uint8 i = 0; i < 9; i++)
+            //        DoUseDoorOrButton(m_uiMimironTelGUID[i]);
+            //}
+            break;
+        case TYPE_AERIAL_UNIT:
+            m_auiMiniBoss[4] = uiData;
+            break;
+        case TYPE_YOGG_BRAIN:
+            m_auiMiniBoss[5] = uiData;
+            break;
+
+            //phases
+        case TYPE_MIMIRON_PHASE:
+            m_uiMimironPhase = uiData;
+            break;
+        case TYPE_YOGG_PHASE:
+            m_uiYoggPhase = uiData;
+            break;
+        case TYPE_VISION_PHASE:
+            m_uiVisionPhase = uiData;
+            break;
     }
 
     DoOpenMadnessDoorIfCan();
@@ -525,6 +589,27 @@ uint32 instance_ulduar::GetData(uint32 uiType) const
             return m_auiUlduarKeepers[2];
         case TYPE_KEEPER_MIMIRON:
             return m_auiUlduarKeepers[3];
+
+            // mini boss
+        case TYPE_RUNE_GIANT:
+            return m_auiMiniBoss[1];
+        case TYPE_RUNIC_COLOSSUS:
+            return m_auiMiniBoss[0];
+        case TYPE_LEVIATHAN_MK:
+            return m_auiMiniBoss[2];
+        case TYPE_VX001:
+            return m_auiMiniBoss[3];
+        case TYPE_AERIAL_UNIT:
+            return m_auiMiniBoss[4];
+        case TYPE_YOGG_BRAIN:
+            return m_auiMiniBoss[5];
+
+        case TYPE_MIMIRON_PHASE:
+            return m_uiMimironPhase;
+        case TYPE_YOGG_PHASE:
+            return m_uiYoggPhase;
+        case TYPE_VISION_PHASE:
+            return m_uiVisionPhase;
     }
 
     return 0;

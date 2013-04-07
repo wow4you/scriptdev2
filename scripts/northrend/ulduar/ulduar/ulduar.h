@@ -44,6 +44,17 @@ enum
     TYPE_KEEPER_THORIM          = 25,
     TYPE_KEEPER_MIMIRON         = 26,
 
+    //other-> these won't be saved to db
+    TYPE_RUNE_GIANT             = 90,
+    TYPE_RUNIC_COLOSSUS         = 91,
+    TYPE_LEVIATHAN_MK           = 92,
+    TYPE_VX001                  = 93,
+    TYPE_AERIAL_UNIT            = 94,
+    TYPE_YOGG_BRAIN             = 95,
+    TYPE_MIMIRON_PHASE          = 96,
+    TYPE_YOGG_PHASE             = 97,
+    TYPE_VISION_PHASE           = 98,
+
     // The siege of ulduar
     NPC_LEVIATHAN               = 33113,
     NPC_IGNIS                   = 33118,
@@ -254,6 +265,12 @@ class MANGOS_DLL_DECL instance_ulduar : public ScriptedInstance
         uint32 m_auiHardBoss[HARD_MODE_ENCOUNTER];
         uint32 m_auiUlduarKeepers[KEEPER_ENCOUNTER];
         bool m_abAchievCriteria[MAX_SPECIAL_ACHIEV_CRITS];
+
+        // Additional
+        uint32 m_auiMiniBoss[6];
+        uint32 m_uiMimironPhase;
+        uint32 m_uiYoggPhase;
+        uint32 m_uiVisionPhase;
 };
 
 #endif
