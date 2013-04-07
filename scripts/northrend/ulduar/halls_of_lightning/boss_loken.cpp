@@ -60,6 +60,7 @@ struct MANGOS_DLL_DECL boss_lokenAI : public ScriptedAI
     {
         m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
         m_bIsRegularMode = pCreature->GetMap()->IsRegularDifficulty();
+        m_bHasDoneIntro = false;
         Reset();
     }
 
@@ -72,11 +73,15 @@ struct MANGOS_DLL_DECL boss_lokenAI : public ScriptedAI
 
     uint32 m_uiHealthAmountModifier;
 
+    bool m_bHasDoneIntro;
+    uint32 m_uiIntroTimer;
+
     void Reset() override
     {
         m_uiArcLightningTimer = 15000;
         m_uiLightningNovaTimer = 20000;
 
+        m_uiIntroTimer = 0;
         m_uiHealthAmountModifier = 1;
     }
 
@@ -84,12 +89,11 @@ struct MANGOS_DLL_DECL boss_lokenAI : public ScriptedAI
     {
         DoScriptText(SAY_AGGRO, m_creature);
 
+        if (DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_PULSING_SHOCKWAVE : SPELL_PULSING_SHOCKWAVE_H) == CAST_OK)
+            DoCastSpellIfCan(m_creature, SPELL_PULSING_SHOCKWAVE_AURA, CAST_TRIGGERED);
+
         if (m_pInstance)
             m_pInstance->SetData(TYPE_LOKEN, IN_PROGRESS);
-
-        // Cast Pulsing Shockwave at aggro - ToDo: enable this when the core will properly support this spell
-        // DoCastSpellIfCan(m_creature, SPELL_PULSING_SHOCKWAVE_AURA, CAST_TRIGGERED | CAST_AURA_NOT_PRESENT);
-        // DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_PULSING_SHOCKWAVE : SPELL_PULSING_SHOCKWAVE_H, CAST_TRIGGERED | CAST_AURA_NOT_PRESENT);
     }
 
     void JustDied(Unit* /*pKiller*/) override
@@ -116,8 +120,31 @@ struct MANGOS_DLL_DECL boss_lokenAI : public ScriptedAI
             m_pInstance->SetData(TYPE_LOKEN, FAIL);
     }
 
+    void MoveInLineOfSight(Unit* pWho) override
+    {
+        if (!m_bHasDoneIntro && m_creature->IsWithinDistInMap(pWho, 55.0f) && m_creature->IsWithinLOSInMap(pWho) && pWho->GetTypeId() == TYPEID_PLAYER && !((Player*)pWho)->isGameMaster())
+        {
+            DoScriptText(SAY_INTRO_1, m_creature);
+            m_uiIntroTimer = 21000;
+            m_bHasDoneIntro = true;
+        }
+
+        ScriptedAI::MoveInLineOfSight(pWho);
+    }
+
     void UpdateAI(const uint32 uiDiff) override
     {
+        if (m_uiIntroTimer)
+        {
+            if (m_uiIntroTimer <= uiDiff)
+            {
+                DoScriptText(SAY_INTRO_2, m_creature);
+                m_uiIntroTimer = 0;
+            }
+            else
+                m_uiIntroTimer -= uiDiff;
+        }
+
         // Return since we have no target
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;

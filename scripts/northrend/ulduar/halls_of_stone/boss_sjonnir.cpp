@@ -96,7 +96,6 @@ struct MANGOS_DLL_DECL boss_sjonnirAI : public ScriptedAI
     uint32 m_uiFrenzyTimer;
 
     uint8 m_uiHpCheck;
-
     void Reset() override
     {
         m_uiChainLightningTimer     = urand(3000, 8000);    // TODO timers weak
